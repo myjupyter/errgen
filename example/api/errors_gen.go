@@ -4,6 +4,7 @@ package api
 
 import (
 	"fmt"
+	"log/slog"
 )
 
 // HTTPError is a rich error type wrapping [ErrHTTP]
@@ -25,6 +26,14 @@ func (e *HTTPError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *HTTPError) Unwrap() error {
 	return ErrHTTP
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *HTTPError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("statusCode", e.StatusCode),
+		slog.Any("message", e.Message),
+	)
 }
 
 // NewHTTPError creates a new HTTPError
@@ -56,6 +65,14 @@ func (e *ValidationError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *ValidationError) Unwrap() []error {
 	return []error{e.WrappedError, ErrValidation}
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *ValidationError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("field", e.Field),
+		slog.Any("wrappedError", e.WrappedError),
+	)
 }
 
 // NewValidationError creates a new ValidationError

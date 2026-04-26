@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/myjupyter/errgen/test/case4_ambiguous/auth/v2"
 	"github.com/myjupyter/errgen/test/case4_ambiguous/netpkg/v1"
+	"log/slog"
 )
 
 // ConnectionError is a rich error type wrapping [ErrConnection]
@@ -26,6 +27,13 @@ func (e *ConnectionError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *ConnectionError) Unwrap() error {
 	return ErrConnection
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *ConnectionError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("peer", e.Peer),
+	)
 }
 
 // NewConnectionError creates a new ConnectionError
@@ -55,6 +63,13 @@ func (e *AuthError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *AuthError) Unwrap() error {
 	return ErrAuth
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *AuthError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("token", e.Token),
+	)
 }
 
 // NewAuthError creates a new AuthError

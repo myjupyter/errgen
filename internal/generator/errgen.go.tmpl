@@ -2,11 +2,14 @@
 
 package {{.PackageName}}
 
-{{- if or .NeedsFmt (gt (len .Imports) 0)}}
+{{- if or .NeedsFmt .NeedsSlog (gt (len .Imports) 0)}}
 
 import (
 {{- if .NeedsFmt}}
 	"fmt"
+{{- end}}
+{{- if .NeedsSlog}}
+	"log/slog"
 {{- end}}
 {{- range .Imports}}
 	"{{.}}"
@@ -44,6 +47,17 @@ func (e *{{.TypeName}}) Unwrap() []error {
 {{- else}}
 func (e *{{.TypeName}}) Unwrap() error {
 	return {{.VarName}}
+}
+{{- end}}
+{{- if .Fields}}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *{{.TypeName}}) LogValue() slog.Value {
+	return slog.GroupValue(
+{{- range .Fields}}
+		slog.Any("{{.NameLower}}", e.{{.Name}}),
+{{- end}}
+	)
 }
 {{- end}}
 

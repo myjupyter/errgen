@@ -4,6 +4,7 @@ package model
 
 import (
 	"fmt"
+	"log/slog"
 )
 
 // ParsingError is a rich error type wrapping [ErrParsing]
@@ -24,6 +25,13 @@ func (e *ParsingError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *ParsingError) Unwrap() []error {
 	return []error{e.WrappedError, ErrParsing}
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *ParsingError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("wrappedError", e.WrappedError),
+	)
 }
 
 // NewParsingError creates a new ParsingError
@@ -55,6 +63,13 @@ func (e *GenerationError) Unwrap() []error {
 	return []error{e.WrappedError, ErrGeneration}
 }
 
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *GenerationError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("wrappedError", e.WrappedError),
+	)
+}
+
 // NewGenerationError creates a new GenerationError
 func NewGenerationError(wrappedError error) *GenerationError {
 	e := &GenerationError{
@@ -82,6 +97,13 @@ func (e *ResolvingError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *ResolvingError) Unwrap() []error {
 	return []error{e.WrappedError, ErrResolving}
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *ResolvingError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("wrappedError", e.WrappedError),
+	)
 }
 
 // NewResolvingError creates a new ResolvingError
@@ -112,6 +134,14 @@ func (e *ParsingAnnotationError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *ParsingAnnotationError) Unwrap() []error {
 	return []error{e.WrappedError, ErrParsingAnnotation}
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *ParsingAnnotationError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("errVarName", e.ErrVarName),
+		slog.Any("wrappedError", e.WrappedError),
+	)
 }
 
 // NewParsingAnnotationError creates a new ParsingAnnotationError
@@ -145,6 +175,14 @@ func (e *ParsingFileError) Unwrap() []error {
 	return []error{e.WrappedError, ErrParsingFile}
 }
 
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *ParsingFileError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("filename", e.Filename),
+		slog.Any("wrappedError", e.WrappedError),
+	)
+}
+
 // NewParsingFileError creates a new ParsingFileError
 func NewParsingFileError(filename string, wrappedError error) *ParsingFileError {
 	e := &ParsingFileError{
@@ -175,6 +213,13 @@ func (e *ParsingInvalidErrorAnnotationError) Unwrap() error {
 	return ErrParsingInvalidErrorAnnotation
 }
 
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *ParsingInvalidErrorAnnotationError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("invalidAnnotationText", e.InvalidAnnotationText),
+	)
+}
+
 // NewParsingInvalidErrorAnnotationError creates a new ParsingInvalidErrorAnnotationError
 func NewParsingInvalidErrorAnnotationError(invalidAnnotationText string) *ParsingInvalidErrorAnnotationError {
 	e := &ParsingInvalidErrorAnnotationError{
@@ -203,6 +248,14 @@ func (e *ParsingInvalidVarAnnotationError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *ParsingInvalidVarAnnotationError) Unwrap() error {
 	return ErrParsingInvalidVarAnnotation
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *ParsingInvalidVarAnnotationError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("invalidAnnotationText", e.InvalidAnnotationText),
+		slog.Any("message", e.Message),
+	)
 }
 
 // NewParsingInvalidVarAnnotationError creates a new ParsingInvalidVarAnnotationError
@@ -236,6 +289,14 @@ func (e *GenInvalidTemplateError) Unwrap() []error {
 	return []error{e.WrappedError, ErrGenInvalidTemplate}
 }
 
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *GenInvalidTemplateError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("templateName", e.TemplateName),
+		slog.Any("wrappedError", e.WrappedError),
+	)
+}
+
 // NewGenInvalidTemplateError creates a new GenInvalidTemplateError
 func NewGenInvalidTemplateError(templateName string, wrappedError error) *GenInvalidTemplateError {
 	e := &GenInvalidTemplateError{
@@ -264,6 +325,13 @@ func (e *GenTemplateExecError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *GenTemplateExecError) Unwrap() []error {
 	return []error{e.WrappedError, ErrGenTemplateExec}
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *GenTemplateExecError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("wrappedError", e.WrappedError),
+	)
 }
 
 // NewGenTemplateExecError creates a new GenTemplateExecError
@@ -295,6 +363,13 @@ func (e *GenCodeFormattingError) Unwrap() []error {
 	return []error{e.WrappedError, ErrGenCodeFormatting}
 }
 
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *GenCodeFormattingError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("wrappedError", e.WrappedError),
+	)
+}
+
 // NewGenCodeFormattingError creates a new GenCodeFormattingError
 func NewGenCodeFormattingError(wrappedError error) *GenCodeFormattingError {
 	e := &GenCodeFormattingError{
@@ -322,6 +397,13 @@ func (e *GenUnknownFieldError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *GenUnknownFieldError) Unwrap() error {
 	return ErrGenUnknownField
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *GenUnknownFieldError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("unknownField", e.UnknownField),
+	)
 }
 
 // NewGenUnknownFieldError creates a new GenUnknownFieldError
@@ -352,6 +434,14 @@ func (e *GenErrDefError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *GenErrDefError) Unwrap() []error {
 	return []error{e.WrappedError, ErrGenErrDef}
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *GenErrDefError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("errVarName", e.ErrVarName),
+		slog.Any("wrappedError", e.WrappedError),
+	)
 }
 
 // NewGenErrDefError creates a new GenErrDefError
@@ -385,6 +475,14 @@ func (e *PackageNotFoundError) Unwrap() error {
 	return ErrPackageNotFound
 }
 
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *PackageNotFoundError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("packageName", e.PackageName),
+		slog.Any("modulePath", e.ModulePath),
+	)
+}
+
 // NewPackageNotFoundError creates a new PackageNotFoundError
 func NewPackageNotFoundError(packageName string, modulePath string) *PackageNotFoundError {
 	e := &PackageNotFoundError{
@@ -414,6 +512,14 @@ func (e *AmbiguousPackageError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *AmbiguousPackageError) Unwrap() error {
 	return ErrAmbiguousPackage
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *AmbiguousPackageError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("packageName", e.PackageName),
+		slog.Any("locations", e.Locations),
+	)
 }
 
 // NewAmbiguousPackageError creates a new AmbiguousPackageError

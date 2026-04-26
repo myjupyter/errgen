@@ -4,6 +4,7 @@ package case6
 
 import (
 	"fmt"
+	"log/slog"
 )
 
 // ApplicationError is a rich error type wrapping [ErrApplication]
@@ -25,6 +26,14 @@ func (e *ApplicationError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *ApplicationError) Unwrap() error {
 	return ErrApplication
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *ApplicationError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("code", e.Code),
+		slog.Any("message", e.Message),
+	)
 }
 
 // NewApplicationError creates a new ApplicationError
@@ -54,6 +63,13 @@ func (e *InternalError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *InternalError) Unwrap() []error {
 	return []error{e.WrappedError, ErrInternal}
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *InternalError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("wrappedError", e.WrappedError),
+	)
 }
 
 // NewInternalError creates a new InternalError

@@ -4,6 +4,7 @@ package case5
 
 import (
 	"fmt"
+	"log/slog"
 )
 
 // WrapSingleError is a rich error type wrapping [ErrWrapSingle]
@@ -24,6 +25,13 @@ func (e *WrapSingleError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *WrapSingleError) Unwrap() []error {
 	return []error{e.Inner, ErrWrapSingle}
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *WrapSingleError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("inner", e.Inner),
+	)
 }
 
 // NewWrapSingleError creates a new WrapSingleError
@@ -54,6 +62,14 @@ func (e *WrapTwoError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *WrapTwoError) Unwrap() []error {
 	return []error{e.First, e.Second, ErrWrapTwo}
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *WrapTwoError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("first", e.First),
+		slog.Any("second", e.Second),
+	)
 }
 
 // NewWrapTwoError creates a new WrapTwoError
@@ -88,6 +104,15 @@ func (e *WrapChainError) Unwrap() []error {
 	return []error{e.Cause, e.Underlying, e.Root, ErrWrapChain}
 }
 
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *WrapChainError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("cause", e.Cause),
+		slog.Any("underlying", e.Underlying),
+		slog.Any("root", e.Root),
+	)
+}
+
 // NewWrapChainError creates a new WrapChainError
 func NewWrapChainError(cause error, underlying error, root error) *WrapChainError {
 	e := &WrapChainError{
@@ -117,6 +142,13 @@ func (e *WrapNoFormatError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *WrapNoFormatError) Unwrap() []error {
 	return []error{e.Err, ErrWrapNoFormat}
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *WrapNoFormatError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("err", e.Err),
+	)
 }
 
 // NewWrapNoFormatError creates a new WrapNoFormatError

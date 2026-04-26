@@ -6,6 +6,7 @@ type templateData struct {
 	Imports     []string
 	Defs        []errDefData
 	NeedsFmt    bool
+	NeedsSlog   bool
 	NoHooks     bool
 }
 

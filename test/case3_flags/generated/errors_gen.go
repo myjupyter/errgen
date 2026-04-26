@@ -5,6 +5,7 @@ package generated
 import (
 	"fmt"
 	"github.com/myjupyter/errgen/test/case3_flags"
+	"log/slog"
 )
 
 // HTTPError is a rich error type wrapping [case3.ErrHTTP]
@@ -25,6 +26,13 @@ func (e *HTTPError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *HTTPError) Unwrap() error {
 	return case3.ErrHTTP
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *HTTPError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("statusCode", e.StatusCode),
+	)
 }
 
 // NewHTTPError creates a new HTTPError
@@ -55,6 +63,14 @@ func (e *TimeoutError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *TimeoutError) Unwrap() error {
 	return case3.ErrTimeout
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *TimeoutError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("endpoint", e.Endpoint),
+		slog.Any("timeout", e.Timeout),
+	)
 }
 
 // NewTimeoutError creates a new TimeoutError

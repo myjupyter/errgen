@@ -7,6 +7,7 @@ import (
 	"github.com/myjupyter/errgen/test/case2_imports/custom1"
 	"github.com/myjupyter/errgen/test/case2_imports/custom2"
 	"github.com/myjupyter/errgen/test/case2_imports/custom3"
+	"log/slog"
 )
 
 // ProcessingError is a rich error type wrapping [ErrProcessing]
@@ -29,6 +30,15 @@ func (e *ProcessingError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *ProcessingError) Unwrap() error {
 	return ErrProcessing
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *ProcessingError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("item", e.Item),
+		slog.Any("mapping", e.Mapping),
+		slog.Any("tags", e.Tags),
+	)
 }
 
 // NewProcessingError creates a new ProcessingError
@@ -62,6 +72,15 @@ func (e *MultiImportError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *MultiImportError) Unwrap() error {
 	return ErrMultiImport
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *MultiImportError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("ptr", e.Ptr),
+		slog.Any("detailSlice", e.DetailSlice),
+		slog.Any("tagMap", e.TagMap),
+	)
 }
 
 // NewMultiImportError creates a new MultiImportError

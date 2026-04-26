@@ -56,10 +56,13 @@ func (g *Generator) Generate(packageName string, defs []model.ErrDef, srcPkg, sr
 	// Collect unique extra imports from fields and determine which std imports are needed
 	seen := make(map[string]bool)
 	var imports []string
-	var needsFmt bool
+	var needsFmt, needsSlog bool
 	for _, d := range tmplDefs {
 		if d.ErrorFormat != nil {
 			needsFmt = true
+		}
+		if len(d.Fields) > 0 {
+			needsSlog = true
 		}
 		for _, f := range d.Fields {
 			if f.ImportPath != "" && !seen[f.ImportPath] {
@@ -79,6 +82,7 @@ func (g *Generator) Generate(packageName string, defs []model.ErrDef, srcPkg, sr
 		Imports:     imports,
 		Defs:        tmplDefs,
 		NeedsFmt:    needsFmt,
+		NeedsSlog:   needsSlog,
 		NoHooks:     noHooks,
 	}
 

@@ -4,6 +4,7 @@ package case1
 
 import (
 	"fmt"
+	"log/slog"
 )
 
 // ApplicationError is a rich error type wrapping [ErrApplication]
@@ -25,6 +26,14 @@ func (e *ApplicationError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *ApplicationError) Unwrap() error {
 	return ErrApplication
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *ApplicationError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("code", e.Code),
+		slog.Any("message", e.Message),
+	)
 }
 
 // NewApplicationError creates a new ApplicationError
@@ -57,6 +66,13 @@ func (e *NotFoundError) Unwrap() error {
 	return ErrNotFound
 }
 
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *NotFoundError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("reason", e.Reason),
+	)
+}
+
 // NewNotFoundError creates a new NotFoundError
 func NewNotFoundError(reason string) *NotFoundError {
 	e := &NotFoundError{
@@ -84,6 +100,13 @@ func (e *InternalError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *InternalError) Unwrap() []error {
 	return []error{e.WrappedError, ErrInternal}
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *InternalError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("wrappedError", e.WrappedError),
+	)
 }
 
 // NewInternalError creates a new InternalError
@@ -114,6 +137,14 @@ func (e *TimeoutError) Is(target error) bool {
 // Unwrap returns the underlying error(s)
 func (e *TimeoutError) Unwrap() error {
 	return ErrTimeout
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *TimeoutError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("timeout", e.Timeout),
+		slog.Any("endpoint", e.Endpoint),
+	)
 }
 
 // NewTimeoutError creates a new TimeoutError

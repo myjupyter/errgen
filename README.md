@@ -3,7 +3,7 @@
 Go code generator for rich error types. Stdlib only, zero dependencies.
 
 - Annotate `errors.New` sentinels with fields and a format string
-- Generates struct, constructor, `Error()`, `Is()`, `Unwrap()`
+- Generates struct, constructor, `Error()`, `Is()`, `Unwrap()`, `LogValue()`
 - Errors as data containers - carry context, extract with `errors.As`
 - Customizable via Go templates and `onCreate` hooks
 - Doesn't create extra dependencies in your code
@@ -19,6 +19,7 @@ Go code generator for rich error types. Stdlib only, zero dependencies.
   - [`@Name Type` - field declaration](#name-type----field-declaration)
   - [`@Error("format string")` - error message](#errorformat-string----error-message)
   - [Error-typed fields and `Unwrap`](#error-typed-fields-and-unwrap)
+  - [Structured logging (`slog.LogValuer`)](#structured-logging-sloglogvaluer)
   - [Generated type naming](#generated-type-naming)
   - [Hook file (`_gen_hook.go`)](#hook-file-_gen_hookgo)
 - [Example](#example)
@@ -148,6 +149,22 @@ func (e *WrapChainError) Unwrap() []error {
 ```
 
 Without error-typed fields, `Unwrap()` returns just the sentinel as a single `error`.
+
+### Structured logging (`slog.LogValuer`)
+
+Every error type with fields implements `slog.LogValuer` (stdlib since Go 1.21). This means structured loggers automatically extract typed fields instead of just calling `Error()`:
+
+```go
+slog.Error("request failed", "err", api.NewHTTPError(404, "user not found"))
+```
+
+Output:
+
+```json
+{"level":"ERROR","msg":"request failed","err":{"statusCode":404,"message":"user not found"}}
+```
+
+Works with any `slog`-compatible logger (zerolog, zap via bridge, etc).
 
 ### Generated type naming
 
