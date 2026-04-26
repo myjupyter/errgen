@@ -56,7 +56,7 @@ func (g *Generator) Generate(packageName string, defs []model.ErrDef, srcPkg, sr
 	// Collect unique extra imports from fields and determine which std imports are needed
 	seen := make(map[string]bool)
 	var imports []string
-	var needsFmt, needsSlog, needsJSON, needsErrors bool
+	var needsFmt, needsSlog, needsJSON, needsErrors, needsHTTPStatus bool
 	for _, d := range tmplDefs {
 		if d.ErrorFormat != nil {
 			needsFmt = true
@@ -67,6 +67,9 @@ func (g *Generator) Generate(packageName string, defs []model.ErrDef, srcPkg, sr
 		}
 		if len(d.WrappedFields) > 0 {
 			needsErrors = true
+		}
+		if d.Code != nil {
+			needsHTTPStatus = true
 		}
 		for _, f := range d.Fields {
 			if f.ImportPath != "" && !seen[f.ImportPath] {
@@ -87,9 +90,10 @@ func (g *Generator) Generate(packageName string, defs []model.ErrDef, srcPkg, sr
 		Defs:        tmplDefs,
 		NeedsFmt:    needsFmt,
 		NeedsSlog:   needsSlog,
-		NeedsJSON:   needsJSON,
-		NeedsErrors: needsErrors,
-		NoHooks:     noHooks,
+		NeedsJSON:       needsJSON,
+		NeedsErrors:     needsErrors,
+		NeedsHTTPStatus: needsHTTPStatus,
+		NoHooks:         noHooks,
 	}
 
 	var buf bytes.Buffer
@@ -171,6 +175,7 @@ func buildDefData(def model.ErrDef) (errDefData, error) {
 		ErrorFormat:     errorFormat,
 		ConstructorArgs: constructorArgs,
 		WrappedFields:   wrappedFields,
+		Code:            def.Code,
 	}, nil
 }
 

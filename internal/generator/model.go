@@ -7,13 +7,14 @@ type templateData struct {
 	Defs        []errDefData
 	NeedsFmt    bool
 	NeedsSlog   bool
-	NeedsJSON   bool
-	NeedsErrors bool // for errors.New in UnmarshalJSON
-	NoHooks     bool
+	NeedsJSON       bool
+	NeedsErrors     bool // for errors.New in UnmarshalJSON
+	NeedsHTTPStatus bool
+	NoHooks         bool
 }
 
 // defData is per-error template data
-type errDefData struct {
+type errDefData struct { //nolint:govet // readability over alignment
 	TypeName        string
 	VarName         string
 	Fields          []fieldData
@@ -21,6 +22,7 @@ type errDefData struct {
 	FmtString       string
 	ConstructorArgs string
 	WrappedFields   []fieldData // fields with type "error", used for Unwrap
+	Code            *string     // status code expression from @Code(...)
 }
 
 type fieldData struct {

@@ -18,6 +18,7 @@ Go code generator for rich error types. Stdlib only, zero dependencies.
 - [Annotation DSL](#annotation-dsl)
   - [`@Name Type` - field declaration](#name-type----field-declaration)
   - [`@Error("format string")` - error message](#errorformat-string----error-message)
+  - [`@Code(...)` - HTTP status code](#code----http-status-code)
   - [Error-typed fields and `Unwrap`](#error-typed-fields-and-unwrap)
   - [Structured logging (`slog.LogValuer`)](#structured-logging-sloglogvaluer)
   - [JSON serialization](#json-serialization)
@@ -129,6 +130,34 @@ func (e *InvalidError) Error() string {
 ```
 
 If `@Error` is omitted, `Error()` returns the sentinel's message. All `%FieldName` references must match declared fields - unknown references produce a parse error.
+
+### `@Code(...)` - HTTP status code
+
+Associates an HTTP status code with the error. Generates a `StatusCode() int` method:
+
+```go
+// @Message string
+// @Error("not found: %Message")
+// @Code(http.StatusNotFound)
+ErrNotFound = errors.New("not found")
+```
+
+Generated:
+
+```go
+func (e *NotFoundError) StatusCode() int {
+    return http.StatusNotFound
+}
+```
+
+The value is passed through verbatim - use `http.StatusNotFound`, `400`, or any `int` expression. Your middleware can then use a common interface:
+
+```go
+var coder interface{ StatusCode() int }
+if errors.As(err, &coder) {
+    w.WriteHeader(coder.StatusCode())
+}
+```
 
 ### Error-typed fields and `Unwrap`
 

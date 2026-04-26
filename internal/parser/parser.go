@@ -152,6 +152,13 @@ func parseAnnotation(text string, def *model.ErrDef) error {
 		return nil
 	}
 
+	// @Code(...) — gRPC status code annotation
+	if strings.HasPrefix(text, "@Code(") {
+		code := parseCodeAnnotation(text)
+		def.Code = &code
+		return nil
+	}
+
 	// @Name Type — field declaration
 	field, err := parseVarAnnotation(text)
 	if err != nil {
@@ -160,6 +167,12 @@ func parseAnnotation(text string, def *model.ErrDef) error {
 
 	def.Fields = append(def.Fields, field)
 	return nil
+}
+
+// parseCodeAnnotation extracts the code expression from @Code(...)
+func parseCodeAnnotation(text string) string {
+	inner := strings.TrimPrefix(text, "@Code(")
+	return strings.TrimSuffix(strings.TrimSpace(inner), ")")
 }
 
 // parseErrorAnnotation extracts the format string from @Error("...")

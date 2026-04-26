@@ -2,7 +2,7 @@
 
 package {{.PackageName}}
 
-{{- if or .NeedsFmt .NeedsSlog .NeedsJSON .NeedsErrors (gt (len .Imports) 0)}}
+{{- if or .NeedsFmt .NeedsSlog .NeedsJSON .NeedsErrors .NeedsHTTPStatus (gt (len .Imports) 0)}}
 
 import (
 {{- if .NeedsJSON}}
@@ -16,6 +16,9 @@ import (
 {{- end}}
 {{- if .NeedsSlog}}
 	"log/slog"
+{{- end}}
+{{- if .NeedsHTTPStatus}}
+	"net/http"
 {{- end}}
 {{- range .Imports}}
 	"{{.}}"
@@ -53,6 +56,13 @@ func (e *{{.TypeName}}) Unwrap() []error {
 {{- else}}
 func (e *{{.TypeName}}) Unwrap() error {
 	return {{.VarName}}
+}
+{{- end}}
+{{- if .Code}}
+
+// StatusCode returns the HTTP status code for this error
+func (e *{{.TypeName}}) StatusCode() int {
+	return {{.Code}}
 }
 {{- end}}
 {{- if .Fields}}
