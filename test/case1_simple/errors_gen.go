@@ -292,3 +292,70 @@ func NewValidationError() *ValidationError {
 	e.onCreate()
 	return e
 }
+
+// InvalidErrError is a rich error type wrapping [InvalidErr]
+type InvalidErrError struct {
+	Code   int
+	Domain string
+}
+
+// Error implements the error interface
+func (e *InvalidErrError) Error() string {
+	return fmt.Sprintf("invalid argument: code=%v, domain=%v", e.Code, e.Domain)
+}
+
+// Is reports whether the target matches [InvalidErr]
+func (e *InvalidErrError) Is(target error) bool {
+	return target == InvalidErr
+}
+
+// Unwrap returns the underlying error(s)
+func (e *InvalidErrError) Unwrap() error {
+	return InvalidErr
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *InvalidErrError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Any("code", e.Code),
+		slog.Any("domain", e.Domain),
+	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *InvalidErrError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error  string `json:"error"`
+		Code   int    `json:"code"`
+		Domain string `json:"domain"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.Code = e.Code
+	d.Domain = e.Domain
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *InvalidErrError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		Code   int    `json:"code"`
+		Domain string `json:"domain"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.Code = d.Code
+	e.Domain = d.Domain
+	return nil
+}
+
+// NewInvalidErrError creates a new InvalidErrError
+func NewInvalidErrError(code int, domain string) *InvalidErrError {
+	e := &InvalidErrError{
+		Code:   code,
+		Domain: domain,
+	}
+	e.onCreate()
+	return e
+}

@@ -34,3 +34,9 @@ func (e *TimeoutError) onCreate() {
 func (e *ValidationError) onCreate() {
 	// put custom logic here
 }
+
+// onCreate is a hook for user custom logic
+// the code inside must not panic
+func (e *InvalidErrError) onCreate() {
+	// put custom logic here
+}
