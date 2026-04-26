@@ -3,7 +3,7 @@
 Go code generator for rich error types. Stdlib only, zero dependencies.
 
 - Annotate `errors.New` sentinels with fields and a format string
-- Generates struct, constructor, `Error()`, `Is()`, `Unwrap()`, `LogValue()`
+- Generates struct, constructor, `Error()`, `Is()`, `Unwrap()`, `LogValue()`, `MarshalJSON()`, `UnmarshalJSON()`
 - Errors as data containers - carry context, extract with `errors.As`
 - Customizable via Go templates and `onCreate` hooks
 - Doesn't create extra dependencies in your code
@@ -20,6 +20,7 @@ Go code generator for rich error types. Stdlib only, zero dependencies.
   - [`@Error("format string")` - error message](#errorformat-string----error-message)
   - [Error-typed fields and `Unwrap`](#error-typed-fields-and-unwrap)
   - [Structured logging (`slog.LogValuer`)](#structured-logging-sloglogvaluer)
+  - [JSON serialization](#json-serialization)
   - [Generated type naming](#generated-type-naming)
   - [Hook file (`_gen_hook.go`)](#hook-file-_gen_hookgo)
 - [Example](#example)
@@ -165,6 +166,21 @@ Output:
 ```
 
 Works with any `slog`-compatible logger (zerolog, zap via bridge, etc).
+
+### JSON serialization
+
+Every error type with fields implements `json.Marshaler` and `json.Unmarshaler`. The JSON output includes an `"error"` key with the formatted message plus all typed fields:
+
+```go
+err := api.NewHTTPError(404, "user not found")
+data, _ := json.Marshal(err)
+```
+
+```json
+{"error":"HTTP 404: user not found","statusCode":404,"message":"user not found"}
+```
+
+Error-typed fields are serialized as strings. On unmarshal, they are reconstructed via `errors.New`.
 
 ### Generated type naming
 

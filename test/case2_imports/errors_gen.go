@@ -3,6 +3,7 @@
 package case2
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/myjupyter/errgen/test/case2_imports/custom1"
 	"github.com/myjupyter/errgen/test/case2_imports/custom2"
@@ -39,6 +40,38 @@ func (e *ProcessingError) LogValue() slog.Value {
 		slog.Any("mapping", e.Mapping),
 		slog.Any("tags", e.Tags),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *ProcessingError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error   string                     `json:"error"`
+		Item    custom1.Item               `json:"item"`
+		Mapping map[string]custom2.Details `json:"mapping"`
+		Tags    []custom3.Tag              `json:"tags"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.Item = e.Item
+	d.Mapping = e.Mapping
+	d.Tags = e.Tags
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *ProcessingError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		Item    custom1.Item               `json:"item"`
+		Mapping map[string]custom2.Details `json:"mapping"`
+		Tags    []custom3.Tag              `json:"tags"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.Item = d.Item
+	e.Mapping = d.Mapping
+	e.Tags = d.Tags
+	return nil
 }
 
 // NewProcessingError creates a new ProcessingError
@@ -81,6 +114,38 @@ func (e *MultiImportError) LogValue() slog.Value {
 		slog.Any("detailSlice", e.DetailSlice),
 		slog.Any("tagMap", e.TagMap),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *MultiImportError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error       string                 `json:"error"`
+		Ptr         *custom1.Item          `json:"ptr"`
+		DetailSlice []custom2.Details      `json:"detailSlice"`
+		TagMap      map[string]custom3.Tag `json:"tagMap"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.Ptr = e.Ptr
+	d.DetailSlice = e.DetailSlice
+	d.TagMap = e.TagMap
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *MultiImportError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		Ptr         *custom1.Item          `json:"ptr"`
+		DetailSlice []custom2.Details      `json:"detailSlice"`
+		TagMap      map[string]custom3.Tag `json:"tagMap"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.Ptr = d.Ptr
+	e.DetailSlice = d.DetailSlice
+	e.TagMap = d.TagMap
+	return nil
 }
 
 // NewMultiImportError creates a new MultiImportError

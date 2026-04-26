@@ -7,6 +7,8 @@ type templateData struct {
 	Defs        []errDefData
 	NeedsFmt    bool
 	NeedsSlog   bool
+	NeedsJSON   bool
+	NeedsErrors bool // for errors.New in UnmarshalJSON
 	NoHooks     bool
 }
 

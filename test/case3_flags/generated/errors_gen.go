@@ -3,6 +3,7 @@
 package generated
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/myjupyter/errgen/test/case3_flags"
 	"log/slog"
@@ -33,6 +34,30 @@ func (e *HTTPError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.Any("statusCode", e.StatusCode),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *HTTPError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error      string `json:"error"`
+		StatusCode int    `json:"statusCode"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.StatusCode = e.StatusCode
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *HTTPError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		StatusCode int `json:"statusCode"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.StatusCode = d.StatusCode
+	return nil
 }
 
 // NewHTTPError creates a new HTTPError
@@ -71,6 +96,34 @@ func (e *TimeoutError) LogValue() slog.Value {
 		slog.Any("endpoint", e.Endpoint),
 		slog.Any("timeout", e.Timeout),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *TimeoutError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error    string `json:"error"`
+		Endpoint string `json:"endpoint"`
+		Timeout  int    `json:"timeout"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.Endpoint = e.Endpoint
+	d.Timeout = e.Timeout
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *TimeoutError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		Endpoint string `json:"endpoint"`
+		Timeout  int    `json:"timeout"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.Endpoint = d.Endpoint
+	e.Timeout = d.Timeout
+	return nil
 }
 
 // NewTimeoutError creates a new TimeoutError

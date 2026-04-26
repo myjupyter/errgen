@@ -3,6 +3,8 @@
 package case1
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 )
@@ -34,6 +36,34 @@ func (e *ApplicationError) LogValue() slog.Value {
 		slog.Any("code", e.Code),
 		slog.Any("message", e.Message),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *ApplicationError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error   string `json:"error"`
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.Code = e.Code
+	d.Message = e.Message
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *ApplicationError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.Code = d.Code
+	e.Message = d.Message
+	return nil
 }
 
 // NewApplicationError creates a new ApplicationError
@@ -73,6 +103,30 @@ func (e *NotFoundError) LogValue() slog.Value {
 	)
 }
 
+// MarshalJSON implements [json.Marshaler]
+func (e *NotFoundError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error  string `json:"error"`
+		Reason string `json:"reason"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.Reason = e.Reason
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *NotFoundError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		Reason string `json:"reason"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.Reason = d.Reason
+	return nil
+}
+
 // NewNotFoundError creates a new NotFoundError
 func NewNotFoundError(reason string) *NotFoundError {
 	e := &NotFoundError{
@@ -107,6 +161,34 @@ func (e *InternalError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.Any("wrappedError", e.WrappedError),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *InternalError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error        string `json:"error"`
+		WrappedError string `json:"wrappedError,omitempty"`
+	}
+	d := jsonError{Error: e.Error()}
+	if e.WrappedError != nil {
+		d.WrappedError = e.WrappedError.Error()
+	}
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *InternalError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		WrappedError string `json:"wrappedError"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	if d.WrappedError != "" {
+		e.WrappedError = errors.New(d.WrappedError)
+	}
+	return nil
 }
 
 // NewInternalError creates a new InternalError
@@ -145,6 +227,34 @@ func (e *TimeoutError) LogValue() slog.Value {
 		slog.Any("timeout", e.Timeout),
 		slog.Any("endpoint", e.Endpoint),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *TimeoutError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error    string `json:"error"`
+		Timeout  int    `json:"timeout"`
+		Endpoint string `json:"endpoint"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.Timeout = e.Timeout
+	d.Endpoint = e.Endpoint
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *TimeoutError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		Timeout  int    `json:"timeout"`
+		Endpoint string `json:"endpoint"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.Timeout = d.Timeout
+	e.Endpoint = d.Endpoint
+	return nil
 }
 
 // NewTimeoutError creates a new TimeoutError

@@ -3,6 +3,7 @@
 package case4
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/myjupyter/errgen/test/case4_ambiguous/auth/v2"
 	"github.com/myjupyter/errgen/test/case4_ambiguous/netpkg/v1"
@@ -34,6 +35,30 @@ func (e *ConnectionError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.Any("peer", e.Peer),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *ConnectionError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error string      `json:"error"`
+		Peer  netpkg.Addr `json:"peer"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.Peer = e.Peer
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *ConnectionError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		Peer netpkg.Addr `json:"peer"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.Peer = d.Peer
+	return nil
 }
 
 // NewConnectionError creates a new ConnectionError
@@ -70,6 +95,30 @@ func (e *AuthError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.Any("token", e.Token),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *AuthError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error string     `json:"error"`
+		Token auth.Token `json:"token"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.Token = e.Token
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *AuthError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		Token auth.Token `json:"token"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.Token = d.Token
+	return nil
 }
 
 // NewAuthError creates a new AuthError

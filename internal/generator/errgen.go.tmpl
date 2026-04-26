@@ -2,9 +2,15 @@
 
 package {{.PackageName}}
 
-{{- if or .NeedsFmt .NeedsSlog (gt (len .Imports) 0)}}
+{{- if or .NeedsFmt .NeedsSlog .NeedsJSON .NeedsErrors (gt (len .Imports) 0)}}
 
 import (
+{{- if .NeedsJSON}}
+	"encoding/json"
+{{- end}}
+{{- if .NeedsErrors}}
+	"errors"
+{{- end}}
 {{- if .NeedsFmt}}
 	"fmt"
 {{- end}}
@@ -58,6 +64,58 @@ func (e *{{.TypeName}}) LogValue() slog.Value {
 		slog.Any("{{.NameLower}}", e.{{.Name}}),
 {{- end}}
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *{{.TypeName}}) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error string `json:"error"`
+{{- range .Fields}}
+{{- if eq .Type "error"}}
+		{{.Name}} string `json:"{{.NameLower}},omitempty"`
+{{- else}}
+		{{.Name}} {{.Type}} `json:"{{.NameLower}}"`
+{{- end}}
+{{- end}}
+	}
+	d := jsonError{Error: e.Error()}
+{{- range .Fields}}
+{{- if eq .Type "error"}}
+	if e.{{.Name}} != nil {
+		d.{{.Name}} = e.{{.Name}}.Error()
+	}
+{{- else}}
+	d.{{.Name}} = e.{{.Name}}
+{{- end}}
+{{- end}}
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *{{.TypeName}}) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+{{- range .Fields}}
+{{- if eq .Type "error"}}
+		{{.Name}} string `json:"{{.NameLower}}"`
+{{- else}}
+		{{.Name}} {{.Type}} `json:"{{.NameLower}}"`
+{{- end}}
+{{- end}}
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+{{- range .Fields}}
+{{- if eq .Type "error"}}
+	if d.{{.Name}} != "" {
+		e.{{.Name}} = errors.New(d.{{.Name}})
+	}
+{{- else}}
+	e.{{.Name}} = d.{{.Name}}
+{{- end}}
+{{- end}}
+	return nil
 }
 {{- end}}
 

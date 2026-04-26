@@ -3,6 +3,8 @@
 package case5
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 )
@@ -32,6 +34,34 @@ func (e *WrapSingleError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.Any("inner", e.Inner),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *WrapSingleError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error string `json:"error"`
+		Inner string `json:"inner,omitempty"`
+	}
+	d := jsonError{Error: e.Error()}
+	if e.Inner != nil {
+		d.Inner = e.Inner.Error()
+	}
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *WrapSingleError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		Inner string `json:"inner"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	if d.Inner != "" {
+		e.Inner = errors.New(d.Inner)
+	}
+	return nil
 }
 
 // NewWrapSingleError creates a new WrapSingleError
@@ -70,6 +100,42 @@ func (e *WrapTwoError) LogValue() slog.Value {
 		slog.Any("first", e.First),
 		slog.Any("second", e.Second),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *WrapTwoError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error  string `json:"error"`
+		First  string `json:"first,omitempty"`
+		Second string `json:"second,omitempty"`
+	}
+	d := jsonError{Error: e.Error()}
+	if e.First != nil {
+		d.First = e.First.Error()
+	}
+	if e.Second != nil {
+		d.Second = e.Second.Error()
+	}
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *WrapTwoError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		First  string `json:"first"`
+		Second string `json:"second"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	if d.First != "" {
+		e.First = errors.New(d.First)
+	}
+	if d.Second != "" {
+		e.Second = errors.New(d.Second)
+	}
+	return nil
 }
 
 // NewWrapTwoError creates a new WrapTwoError
@@ -113,6 +179,50 @@ func (e *WrapChainError) LogValue() slog.Value {
 	)
 }
 
+// MarshalJSON implements [json.Marshaler]
+func (e *WrapChainError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error      string `json:"error"`
+		Cause      string `json:"cause,omitempty"`
+		Underlying string `json:"underlying,omitempty"`
+		Root       string `json:"root,omitempty"`
+	}
+	d := jsonError{Error: e.Error()}
+	if e.Cause != nil {
+		d.Cause = e.Cause.Error()
+	}
+	if e.Underlying != nil {
+		d.Underlying = e.Underlying.Error()
+	}
+	if e.Root != nil {
+		d.Root = e.Root.Error()
+	}
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *WrapChainError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		Cause      string `json:"cause"`
+		Underlying string `json:"underlying"`
+		Root       string `json:"root"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	if d.Cause != "" {
+		e.Cause = errors.New(d.Cause)
+	}
+	if d.Underlying != "" {
+		e.Underlying = errors.New(d.Underlying)
+	}
+	if d.Root != "" {
+		e.Root = errors.New(d.Root)
+	}
+	return nil
+}
+
 // NewWrapChainError creates a new WrapChainError
 func NewWrapChainError(cause error, underlying error, root error) *WrapChainError {
 	e := &WrapChainError{
@@ -149,6 +259,34 @@ func (e *WrapNoFormatError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.Any("err", e.Err),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *WrapNoFormatError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error string `json:"error"`
+		Err   string `json:"err,omitempty"`
+	}
+	d := jsonError{Error: e.Error()}
+	if e.Err != nil {
+		d.Err = e.Err.Error()
+	}
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *WrapNoFormatError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		Err string `json:"err"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	if d.Err != "" {
+		e.Err = errors.New(d.Err)
+	}
+	return nil
 }
 
 // NewWrapNoFormatError creates a new WrapNoFormatError
