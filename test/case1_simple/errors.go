@@ -24,4 +24,11 @@ var (
 
 	// @Error("HTTP error: invalid status code")
 	ErrValidation = errors.New("validation error")
+
+	// @Code int
+	// @Domain string
+	// @Error("invalid argument: code=%Code, domain=%Domain")
+	InvalidErr = errors.New("invalid") //nolint:staticcheck // Example test code
+
+	ErrIgnored = errors.New("ignored")
 )

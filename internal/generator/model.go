@@ -2,11 +2,11 @@ package generator
 
 // templateData is the top-level data passed to the template
 type templateData struct {
-	PackageName string
-	Imports     []string
-	Defs        []errDefData
-	NeedsFmt    bool
-	NeedsSlog   bool
+	PackageName     string
+	Imports         []string
+	Defs            []errDefData
+	NeedsFmt        bool
+	NeedsSlog       bool
 	NeedsJSON       bool
 	NeedsErrors     bool // for errors.New in UnmarshalJSON
 	NeedsHTTPStatus bool

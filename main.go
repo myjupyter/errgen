@@ -136,7 +136,11 @@ func run(cfg *config) error {
 	// Warn about variable names that don't start with "Err"
 	for _, def := range fileInfo.ErrDefs {
 		if !strings.HasPrefix(def.Name, "Err") {
-			fmt.Fprintf(os.Stderr, "errgen: warning: %q does not start with \"Err\" — generated type name will be %q\n",
+			fmt.Fprintf(os.Stderr, "warning: %q does not start with \"Err\" — generated type name will be %q\n",
+				def.Name, strings.TrimPrefix(def.Name, "Err")+"Error")
+		}
+		if strings.HasSuffix(def.Name, "Error") {
+			fmt.Fprintf(os.Stderr, "warning: %q ends with \"Error\" — generated type name will be %q\n",
 				def.Name, strings.TrimPrefix(def.Name, "Err")+"Error")
 		}
 	}

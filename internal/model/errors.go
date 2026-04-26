@@ -2,7 +2,7 @@ package model
 
 import "errors"
 
-//go:generate errgen
+//go:generate go run github.com/myjupyter/errgen
 
 var (
 	// @WrappedError error

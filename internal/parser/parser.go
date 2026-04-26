@@ -42,10 +42,14 @@ func Parse(filename string) (*model.FileInfo, error) {
 				continue
 			}
 
-			// Get the comment group — either the spec's own doc or the decl's
+			// Get the comment group — spec's own comment/doc, or the decl's doc
+			// (standalone `var X = ...` attaches comments to genDecl.Doc)
 			commentGroup := valueSpec.Comment
 			if commentGroup == nil {
 				commentGroup = valueSpec.Doc
+			}
+			if commentGroup == nil {
+				commentGroup = genDecl.Doc
 			}
 			if commentGroup == nil {
 				continue
