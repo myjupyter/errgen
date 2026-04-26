@@ -34,21 +34,28 @@ func New(templateText string) (*Generator, error) {
 	return &Generator{temp: temp}, nil
 }
 
+// GenerateInput holds all parameters for code generation
+type GenerateInput struct { //nolint:govet // readability over alignment
+	PackageName string
+	Defs        []model.ErrDef
+	SrcPkg      string // source package qualifier for cross-package generation
+	SrcImport   string // full import path of the source package
+	NoHooks     bool
+	StackTrace  bool
+}
+
 // Generate renders Go source for the given error definitions
-// srcPkg is the source package qualifier (e.g. "case3") when generating into
-// a different package; empty string when output is in the same package
-// srcImport is the full import path of the source package
-func (g *Generator) Generate(packageName string, defs []model.ErrDef, srcPkg, srcImport string, noHooks bool) ([]byte, error) {
+func (g *Generator) Generate(in GenerateInput) ([]byte, error) {
 	var tmplDefs []errDefData
 
-	for _, def := range defs {
+	for _, def := range in.Defs {
 		dd, err := buildDefData(def)
 		if err != nil {
 			return nil, model.NewGenErrDefError(def.Name, err)
 		}
 		// Qualify sentinel var names with source package when cross-package
-		if srcPkg != "" {
-			dd.VarName = srcPkg + "." + dd.VarName
+		if in.SrcPkg != "" {
+			dd.VarName = in.SrcPkg + "." + dd.VarName
 		}
 		tmplDefs = append(tmplDefs, dd)
 	}
@@ -80,20 +87,21 @@ func (g *Generator) Generate(packageName string, defs []model.ErrDef, srcPkg, sr
 	}
 
 	// Add source package import when generating into a different package
-	if srcImport != "" && !seen[srcImport] {
-		imports = append(imports, srcImport)
+	if in.SrcImport != "" && !seen[in.SrcImport] {
+		imports = append(imports, in.SrcImport)
 	}
 
 	data := templateData{
-		PackageName: packageName,
-		Imports:     imports,
-		Defs:        tmplDefs,
-		NeedsFmt:    needsFmt,
-		NeedsSlog:   needsSlog,
+		PackageName:     in.PackageName,
+		Imports:         imports,
+		Defs:            tmplDefs,
+		NeedsFmt:        needsFmt,
+		NeedsSlog:       needsSlog,
 		NeedsJSON:       needsJSON,
 		NeedsErrors:     needsErrors,
 		NeedsHTTPStatus: needsHTTPStatus,
-		NoHooks:         noHooks,
+		StackTrace:      in.StackTrace,
+		NoHooks:         in.NoHooks,
 	}
 
 	var buf bytes.Buffer

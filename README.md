@@ -24,6 +24,7 @@ Go code generator for rich error types. Stdlib only, zero dependencies.
   - [JSON serialization](#json-serialization)
   - [Generated type naming](#generated-type-naming)
   - [Hook file (`_gen_hook.go`)](#hook-file-_gen_hookgo)
+  - [Stack traces (`-stack-trace`)](#stack-traces---stack-trace)
 - [Example](#example)
 
 ## Install
@@ -54,7 +55,8 @@ go generate ./...
 -t string    path to a custom Go template file (default: built-in template)
 -n bool      dry run: print generated code to stdout instead of writing a file
 -m value     manual import mapping: pkg=import/path (repeatable, for ambiguous packages)
--no-hooks    skip hook file generation
+-no-hooks      skip hook file generation
+-stack-trace   capture call stack in constructors via runtime.Callers
 ```
 
 ### Cross-package generation
@@ -255,6 +257,30 @@ Your custom logic is safe across regenerations:
 - Existing `onCreate()` methods are never overwritten or removed
 - When you add a new error type, its stub is automatically appended to the hook file
 - When you remove an error type, its hook stays in the file (delete it manually if needed)
+
+### Stack traces (`-stack-trace`)
+
+Use the `-stack-trace` flag to capture the call stack in every constructor via `runtime.Callers`. Each error type gets a `stackPCs []uintptr` field and a `StackTrace() []uintptr` method:
+
+```go
+//go:generate go run github.com/myjupyter/errgen -stack-trace
+```
+
+Generated:
+
+```go
+func NewHTTPError(statusCode int, message string) *HTTPError {
+    e := &HTTPError{StatusCode: statusCode, Message: message}
+    var pcs [32]uintptr
+    n := runtime.Callers(2, pcs[:])
+    e.stackPCs = pcs[:n]
+    return e
+}
+
+func (e *HTTPError) StackTrace() []uintptr { return e.stackPCs }
+```
+
+Opt-in only - zero cost when the flag is not set. Use `runtime.CallersFrames(err.StackTrace())` to iterate frames.
 
 ## Example
 

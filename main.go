@@ -47,6 +47,7 @@ type config struct { //nolint:govet // readability over alignment
 	templatePath   string
 	dryRun         bool
 	noHooks        bool
+	stackTrace     bool
 	manualImports  importMapFlag
 }
 
@@ -68,6 +69,7 @@ func parseConfig() (*config, bool) {
 	dryRun := flag.Bool("n", false, "dry run: print generated code to stdout instead of writing a file")
 	showVersion := flag.Bool("v", false, "print version and exit")
 	noHooks := flag.Bool("no-hooks", false, "skip hook file generation")
+	stackTrace := flag.Bool("stack-trace", false, "capture stack trace in constructors via runtime.Callers")
 
 	var manualImports importMapFlag
 	flag.Var(&manualImports, "m", "manual import mapping: pkg=import/path (repeatable, for ambiguous packages)")
@@ -95,6 +97,7 @@ func parseConfig() (*config, bool) {
 		templatePath:  *templatePath,
 		dryRun:        *dryRun,
 		noHooks:       *noHooks,
+		stackTrace:    *stackTrace,
 		manualImports: manualImports,
 	}
 
@@ -159,7 +162,15 @@ func run(cfg *config) error {
 	}
 
 	// Generate main file
-	if err := generateFile(templateText, cfg.outputPath, cfg.packageName, fileInfo.ErrDefs, srcPkg, srcImport, cfg.noHooks, cfg.dryRun); err != nil {
+	genInput := generator.GenerateInput{
+		PackageName: cfg.packageName,
+		Defs:        fileInfo.ErrDefs,
+		SrcPkg:      srcPkg,
+		SrcImport:   srcImport,
+		NoHooks:     cfg.noHooks,
+		StackTrace:  cfg.stackTrace,
+	}
+	if err := generateFile(templateText, cfg.outputPath, genInput, cfg.dryRun); err != nil {
 		return err
 	}
 
@@ -255,13 +266,13 @@ func loadTemplate(templatePath string) (string, error) {
 	return string(data), nil
 }
 
-func generateFile(templateText, outputPath, packageName string, defs []model.ErrDef, srcPkg, srcImport string, noHooks, dryRun bool) error {
+func generateFile(templateText, outputPath string, in generator.GenerateInput, dryRun bool) error {
 	gen, err := generator.New(templateText)
 	if err != nil {
 		return err
 	}
 
-	out, err := gen.Generate(packageName, defs, srcPkg, srcImport, noHooks)
+	out, err := gen.Generate(in)
 	if err != nil {
 		return err
 	}
@@ -290,7 +301,10 @@ func generateHookFile(hookPath, packageName string, defs []model.ErrDef, dryRun 
 		return err
 	}
 
-	out, err := gen.Generate(packageName, defs, "", "", false)
+	out, err := gen.Generate(generator.GenerateInput{
+		PackageName: packageName,
+		Defs:        defs,
+	})
 	if err != nil {
 		return err
 	}

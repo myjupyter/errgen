@@ -3,6 +3,8 @@
 package model
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 )
@@ -32,6 +34,34 @@ func (e *ParsingError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.Any("wrappedError", e.WrappedError),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *ParsingError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error        string `json:"error"`
+		WrappedError string `json:"wrappedError,omitempty"`
+	}
+	d := jsonError{Error: e.Error()}
+	if e.WrappedError != nil {
+		d.WrappedError = e.WrappedError.Error()
+	}
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *ParsingError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		WrappedError string `json:"wrappedError"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	if d.WrappedError != "" {
+		e.WrappedError = errors.New(d.WrappedError)
+	}
+	return nil
 }
 
 // NewParsingError creates a new ParsingError
@@ -70,6 +100,34 @@ func (e *GenerationError) LogValue() slog.Value {
 	)
 }
 
+// MarshalJSON implements [json.Marshaler]
+func (e *GenerationError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error        string `json:"error"`
+		WrappedError string `json:"wrappedError,omitempty"`
+	}
+	d := jsonError{Error: e.Error()}
+	if e.WrappedError != nil {
+		d.WrappedError = e.WrappedError.Error()
+	}
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *GenerationError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		WrappedError string `json:"wrappedError"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	if d.WrappedError != "" {
+		e.WrappedError = errors.New(d.WrappedError)
+	}
+	return nil
+}
+
 // NewGenerationError creates a new GenerationError
 func NewGenerationError(wrappedError error) *GenerationError {
 	e := &GenerationError{
@@ -104,6 +162,34 @@ func (e *ResolvingError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.Any("wrappedError", e.WrappedError),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *ResolvingError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error        string `json:"error"`
+		WrappedError string `json:"wrappedError,omitempty"`
+	}
+	d := jsonError{Error: e.Error()}
+	if e.WrappedError != nil {
+		d.WrappedError = e.WrappedError.Error()
+	}
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *ResolvingError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		WrappedError string `json:"wrappedError"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	if d.WrappedError != "" {
+		e.WrappedError = errors.New(d.WrappedError)
+	}
+	return nil
 }
 
 // NewResolvingError creates a new ResolvingError
@@ -142,6 +228,38 @@ func (e *ParsingAnnotationError) LogValue() slog.Value {
 		slog.Any("errVarName", e.ErrVarName),
 		slog.Any("wrappedError", e.WrappedError),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *ParsingAnnotationError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error        string `json:"error"`
+		ErrVarName   string `json:"errVarName"`
+		WrappedError string `json:"wrappedError,omitempty"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.ErrVarName = e.ErrVarName
+	if e.WrappedError != nil {
+		d.WrappedError = e.WrappedError.Error()
+	}
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *ParsingAnnotationError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		ErrVarName   string `json:"errVarName"`
+		WrappedError string `json:"wrappedError"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.ErrVarName = d.ErrVarName
+	if d.WrappedError != "" {
+		e.WrappedError = errors.New(d.WrappedError)
+	}
+	return nil
 }
 
 // NewParsingAnnotationError creates a new ParsingAnnotationError
@@ -183,6 +301,38 @@ func (e *ParsingFileError) LogValue() slog.Value {
 	)
 }
 
+// MarshalJSON implements [json.Marshaler]
+func (e *ParsingFileError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error        string `json:"error"`
+		Filename     string `json:"filename"`
+		WrappedError string `json:"wrappedError,omitempty"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.Filename = e.Filename
+	if e.WrappedError != nil {
+		d.WrappedError = e.WrappedError.Error()
+	}
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *ParsingFileError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		Filename     string `json:"filename"`
+		WrappedError string `json:"wrappedError"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.Filename = d.Filename
+	if d.WrappedError != "" {
+		e.WrappedError = errors.New(d.WrappedError)
+	}
+	return nil
+}
+
 // NewParsingFileError creates a new ParsingFileError
 func NewParsingFileError(filename string, wrappedError error) *ParsingFileError {
 	e := &ParsingFileError{
@@ -218,6 +368,30 @@ func (e *ParsingInvalidErrorAnnotationError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.Any("invalidAnnotationText", e.InvalidAnnotationText),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *ParsingInvalidErrorAnnotationError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error                 string `json:"error"`
+		InvalidAnnotationText string `json:"invalidAnnotationText"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.InvalidAnnotationText = e.InvalidAnnotationText
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *ParsingInvalidErrorAnnotationError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		InvalidAnnotationText string `json:"invalidAnnotationText"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.InvalidAnnotationText = d.InvalidAnnotationText
+	return nil
 }
 
 // NewParsingInvalidErrorAnnotationError creates a new ParsingInvalidErrorAnnotationError
@@ -256,6 +430,34 @@ func (e *ParsingInvalidVarAnnotationError) LogValue() slog.Value {
 		slog.Any("invalidAnnotationText", e.InvalidAnnotationText),
 		slog.Any("message", e.Message),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *ParsingInvalidVarAnnotationError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error                 string `json:"error"`
+		InvalidAnnotationText string `json:"invalidAnnotationText"`
+		Message               string `json:"message"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.InvalidAnnotationText = e.InvalidAnnotationText
+	d.Message = e.Message
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *ParsingInvalidVarAnnotationError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		InvalidAnnotationText string `json:"invalidAnnotationText"`
+		Message               string `json:"message"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.InvalidAnnotationText = d.InvalidAnnotationText
+	e.Message = d.Message
+	return nil
 }
 
 // NewParsingInvalidVarAnnotationError creates a new ParsingInvalidVarAnnotationError
@@ -297,6 +499,38 @@ func (e *GenInvalidTemplateError) LogValue() slog.Value {
 	)
 }
 
+// MarshalJSON implements [json.Marshaler]
+func (e *GenInvalidTemplateError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error        string `json:"error"`
+		TemplateName string `json:"templateName"`
+		WrappedError string `json:"wrappedError,omitempty"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.TemplateName = e.TemplateName
+	if e.WrappedError != nil {
+		d.WrappedError = e.WrappedError.Error()
+	}
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *GenInvalidTemplateError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		TemplateName string `json:"templateName"`
+		WrappedError string `json:"wrappedError"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.TemplateName = d.TemplateName
+	if d.WrappedError != "" {
+		e.WrappedError = errors.New(d.WrappedError)
+	}
+	return nil
+}
+
 // NewGenInvalidTemplateError creates a new GenInvalidTemplateError
 func NewGenInvalidTemplateError(templateName string, wrappedError error) *GenInvalidTemplateError {
 	e := &GenInvalidTemplateError{
@@ -332,6 +566,34 @@ func (e *GenTemplateExecError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.Any("wrappedError", e.WrappedError),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *GenTemplateExecError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error        string `json:"error"`
+		WrappedError string `json:"wrappedError,omitempty"`
+	}
+	d := jsonError{Error: e.Error()}
+	if e.WrappedError != nil {
+		d.WrappedError = e.WrappedError.Error()
+	}
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *GenTemplateExecError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		WrappedError string `json:"wrappedError"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	if d.WrappedError != "" {
+		e.WrappedError = errors.New(d.WrappedError)
+	}
+	return nil
 }
 
 // NewGenTemplateExecError creates a new GenTemplateExecError
@@ -370,6 +632,34 @@ func (e *GenCodeFormattingError) LogValue() slog.Value {
 	)
 }
 
+// MarshalJSON implements [json.Marshaler]
+func (e *GenCodeFormattingError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error        string `json:"error"`
+		WrappedError string `json:"wrappedError,omitempty"`
+	}
+	d := jsonError{Error: e.Error()}
+	if e.WrappedError != nil {
+		d.WrappedError = e.WrappedError.Error()
+	}
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *GenCodeFormattingError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		WrappedError string `json:"wrappedError"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	if d.WrappedError != "" {
+		e.WrappedError = errors.New(d.WrappedError)
+	}
+	return nil
+}
+
 // NewGenCodeFormattingError creates a new GenCodeFormattingError
 func NewGenCodeFormattingError(wrappedError error) *GenCodeFormattingError {
 	e := &GenCodeFormattingError{
@@ -404,6 +694,30 @@ func (e *GenUnknownFieldError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.Any("unknownField", e.UnknownField),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *GenUnknownFieldError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error        string `json:"error"`
+		UnknownField string `json:"unknownField"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.UnknownField = e.UnknownField
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *GenUnknownFieldError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		UnknownField string `json:"unknownField"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.UnknownField = d.UnknownField
+	return nil
 }
 
 // NewGenUnknownFieldError creates a new GenUnknownFieldError
@@ -442,6 +756,38 @@ func (e *GenErrDefError) LogValue() slog.Value {
 		slog.Any("errVarName", e.ErrVarName),
 		slog.Any("wrappedError", e.WrappedError),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *GenErrDefError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error        string `json:"error"`
+		ErrVarName   string `json:"errVarName"`
+		WrappedError string `json:"wrappedError,omitempty"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.ErrVarName = e.ErrVarName
+	if e.WrappedError != nil {
+		d.WrappedError = e.WrappedError.Error()
+	}
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *GenErrDefError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		ErrVarName   string `json:"errVarName"`
+		WrappedError string `json:"wrappedError"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.ErrVarName = d.ErrVarName
+	if d.WrappedError != "" {
+		e.WrappedError = errors.New(d.WrappedError)
+	}
+	return nil
 }
 
 // NewGenErrDefError creates a new GenErrDefError
@@ -483,6 +829,34 @@ func (e *PackageNotFoundError) LogValue() slog.Value {
 	)
 }
 
+// MarshalJSON implements [json.Marshaler]
+func (e *PackageNotFoundError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error       string `json:"error"`
+		PackageName string `json:"packageName"`
+		ModulePath  string `json:"modulePath"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.PackageName = e.PackageName
+	d.ModulePath = e.ModulePath
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *PackageNotFoundError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		PackageName string `json:"packageName"`
+		ModulePath  string `json:"modulePath"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.PackageName = d.PackageName
+	e.ModulePath = d.ModulePath
+	return nil
+}
+
 // NewPackageNotFoundError creates a new PackageNotFoundError
 func NewPackageNotFoundError(packageName string, modulePath string) *PackageNotFoundError {
 	e := &PackageNotFoundError{
@@ -520,6 +894,34 @@ func (e *AmbiguousPackageError) LogValue() slog.Value {
 		slog.Any("packageName", e.PackageName),
 		slog.Any("locations", e.Locations),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *AmbiguousPackageError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error       string `json:"error"`
+		PackageName string `json:"packageName"`
+		Locations   string `json:"locations"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.PackageName = e.PackageName
+	d.Locations = e.Locations
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *AmbiguousPackageError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		PackageName string `json:"packageName"`
+		Locations   string `json:"locations"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.PackageName = d.PackageName
+	e.Locations = d.Locations
+	return nil
 }
 
 // NewAmbiguousPackageError creates a new AmbiguousPackageError

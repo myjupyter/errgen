@@ -2,7 +2,7 @@
 
 package {{.PackageName}}
 
-{{- if or .NeedsFmt .NeedsSlog .NeedsJSON .NeedsErrors .NeedsHTTPStatus (gt (len .Imports) 0)}}
+{{- if or .NeedsFmt .NeedsSlog .NeedsJSON .NeedsErrors .NeedsHTTPStatus .StackTrace (gt (len .Imports) 0)}}
 
 import (
 {{- if .NeedsJSON}}
@@ -20,6 +20,9 @@ import (
 {{- if .NeedsHTTPStatus}}
 	"net/http"
 {{- end}}
+{{- if .StackTrace}}
+	"runtime"
+{{- end}}
 {{- range .Imports}}
 	"{{.}}"
 {{- end}}
@@ -31,6 +34,9 @@ import (
 type {{.TypeName}} struct {
 {{- range .Fields}}
 	{{.Name}} {{.Type}}
+{{- end}}
+{{- if $.StackTrace}}
+	stackPCs []uintptr
 {{- end}}
 }
 
@@ -129,6 +135,14 @@ func (e *{{.TypeName}}) UnmarshalJSON(data []byte) error {
 }
 {{- end}}
 
+{{- if $.StackTrace}}
+
+// StackTrace returns the call stack captured when the error was created
+func (e *{{.TypeName}}) StackTrace() []uintptr {
+	return e.stackPCs
+}
+{{- end}}
+
 // New{{.TypeName}} creates a new {{.TypeName}}
 func New{{.TypeName}}({{.ConstructorArgs}}) *{{.TypeName}} {
 	e := &{{.TypeName}}{
@@ -136,6 +150,11 @@ func New{{.TypeName}}({{.ConstructorArgs}}) *{{.TypeName}} {
 		{{.Name}}: {{.NameLower}},
 {{- end}}
 	}
+{{- if $.StackTrace}}
+	var pcs [32]uintptr
+	n := runtime.Callers(2, pcs[:])
+	e.stackPCs = pcs[:n]
+{{- end}}
 {{- if not $.NoHooks}}
 	e.onCreate()
 {{- end}}

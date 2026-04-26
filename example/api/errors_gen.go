@@ -3,6 +3,8 @@
 package api
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 )
@@ -34,6 +36,34 @@ func (e *HTTPError) LogValue() slog.Value {
 		slog.Any("statusCode", e.StatusCode),
 		slog.Any("message", e.Message),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *HTTPError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error      string `json:"error"`
+		StatusCode int    `json:"statusCode"`
+		Message    string `json:"message"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.StatusCode = e.StatusCode
+	d.Message = e.Message
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *HTTPError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		StatusCode int    `json:"statusCode"`
+		Message    string `json:"message"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.StatusCode = d.StatusCode
+	e.Message = d.Message
+	return nil
 }
 
 // NewHTTPError creates a new HTTPError
@@ -73,6 +103,38 @@ func (e *ValidationError) LogValue() slog.Value {
 		slog.Any("field", e.Field),
 		slog.Any("wrappedError", e.WrappedError),
 	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *ValidationError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error        string `json:"error"`
+		Field        string `json:"field"`
+		WrappedError string `json:"wrappedError,omitempty"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.Field = e.Field
+	if e.WrappedError != nil {
+		d.WrappedError = e.WrappedError.Error()
+	}
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *ValidationError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		Field        string `json:"field"`
+		WrappedError string `json:"wrappedError"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.Field = d.Field
+	if d.WrappedError != "" {
+		e.WrappedError = errors.New(d.WrappedError)
+	}
+	return nil
 }
 
 // NewValidationError creates a new ValidationError

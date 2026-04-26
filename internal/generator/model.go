@@ -10,6 +10,7 @@ type templateData struct {
 	NeedsJSON       bool
 	NeedsErrors     bool // for errors.New in UnmarshalJSON
 	NeedsHTTPStatus bool
+	StackTrace      bool
 	NoHooks         bool
 }
 
