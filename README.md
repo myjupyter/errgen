@@ -23,7 +23,7 @@ Go code generator for rich error types. Stdlib only, zero dependencies.
   - [JSON serialization](#json-serialization)
   - [Generated type naming](#generated-type-naming)
   - [Hook file (`_gen_hook.go`)](#hook-file-_gen_hookgo)
-  - [Stack traces (`-stack-trace`)](#stack-traces---stack-trace)
+  - [Stack traces (`-stack-trace`)](#stack-traces--stack-trace)
 - [Example](#example)
 
 ## Install
@@ -49,6 +49,12 @@ import "errors"
 // @Code(http.StatusInternalServerError)
 // @Error("internal error: reason is %Reason")
 var ErrInternal = errors.New("internal error")
+```
+
+Then run:
+
+```sh
+go generate ./...
 ```
 
 <details>
@@ -152,11 +158,7 @@ func (e *InternalError) onCreate() {
 
 </details>
 
-Then run:
 
-```sh
-go generate ./...
-```
 
 ### Flags
 
