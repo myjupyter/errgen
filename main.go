@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/myjupyter/errgen/internal/config"
 	"github.com/myjupyter/errgen/internal/generator"
 	"github.com/myjupyter/errgen/internal/model"
 	"github.com/myjupyter/errgen/internal/parser"
@@ -17,114 +18,27 @@ import (
 // version is set at build time via -ldflags "-X main.version=..."
 var version = "dev"
 
-// importMapFlag implements flag.Value for repeatable -m pkg=import/path flags
-type importMapFlag map[string]string
-
-func (m *importMapFlag) String() string { return fmt.Sprintf("%v", map[string]string(*m)) }
-
-func (m *importMapFlag) Set(val string) error {
-	parts := strings.SplitN(val, "=", 2)
-	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
-		return fmt.Errorf("expected pkg=import/path, got %q", val)
-	}
-	if *m == nil {
-		*m = make(importMapFlag)
-	}
-	(*m)[parts[0]] = parts[1]
-	return nil
-}
-
-const (
-	genFileSuffix  = "_gen"
-	hookFileSuffix = "_gen_hook"
-)
-
-type config struct { //nolint:govet // readability over alignment
-	packageName    string
-	inputFile      string
-	outputPath     string
-	hookOutputPath string
-	templatePath   string
-	dryRun         bool
-	noHooks        bool
-	stackTrace     bool
-	manualImports  importMapFlag
-}
-
 func main() {
-	cfg, exit := parseConfig()
-	if exit {
+	cfg, err := config.New()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "errgen: %v\n", err)
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
+
+	if cfg.ShowVersion {
+		fmt.Println("errgen " + version)
 		return
 	}
+
 	if err := run(cfg); err != nil {
 		fmt.Fprintf(os.Stderr, "errgen: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func parseConfig() (*config, bool) {
-	packageName := flag.String("p", "", "package name for the generated file (default: $GOPACKAGE)")
-	outputPathValue := flag.String("o", "", "output file path (default: <input>_gen.go)")
-	templatePath := flag.String("t", "", "path to a custom Go template file (default: built-in template)")
-	dryRun := flag.Bool("n", false, "dry run: print generated code to stdout instead of writing a file")
-	showVersion := flag.Bool("v", false, "print version and exit")
-	noHooks := flag.Bool("no-hooks", false, "skip hook file generation")
-	stackTrace := flag.Bool("stack-trace", false, "capture stack trace in constructors via runtime.Callers")
-
-	var manualImports importMapFlag
-	flag.Var(&manualImports, "m", "manual import mapping: pkg=import/path (repeatable, for ambiguous packages)")
-
-	flag.Parse()
-
-	if *showVersion {
-		fmt.Println("errgen " + version)
-		return nil, true
-	}
-
-	inputFile := flag.Arg(0)
-	if inputFile == "" {
-		inputFile = os.Getenv("GOFILE")
-	}
-	if inputFile == "" {
-		fmt.Fprintln(os.Stderr, "usage: errgen [flags] [source-file]")
-		flag.PrintDefaults()
-		os.Exit(1)
-	}
-
-	cfg := &config{
-		packageName:   *packageName,
-		inputFile:     inputFile,
-		templatePath:  *templatePath,
-		dryRun:        *dryRun,
-		noHooks:       *noHooks,
-		stackTrace:    *stackTrace,
-		manualImports: manualImports,
-	}
-
-	// Compute output paths
-	if outputPathValue == nil || *outputPathValue == "" {
-		ext := filepath.Ext(inputFile)
-		base := strings.TrimSuffix(inputFile, ext)
-		cfg.outputPath = base + genFileSuffix + ext
-		cfg.hookOutputPath = base + hookFileSuffix + ext
-	} else {
-		cfg.outputPath = *outputPathValue
-		dir := filepath.Dir(*outputPathValue)
-		name := filepath.Base(*outputPathValue)
-		ext := filepath.Ext(*outputPathValue)
-		cfg.hookOutputPath = filepath.Join(dir, strings.TrimSuffix(name, ext)+hookFileSuffix+ext)
-	}
-
-	// Package name: flag or $GOPACKAGE (source file fallback applied after parse)
-	if cfg.packageName == "" {
-		cfg.packageName = os.Getenv("GOPACKAGE")
-	}
-
-	return cfg, false
-}
-
-func run(cfg *config) error {
-	fileInfo, err := parser.Parse(cfg.inputFile)
+func run(cfg *config.Config) error {
+	fileInfo, err := parser.Parse(cfg.InputFile)
 	if err != nil {
 		return err
 	}
@@ -146,41 +60,41 @@ func run(cfg *config) error {
 	}
 
 	// Package name priority: flag > $GOPACKAGE > parsed from source file
-	if cfg.packageName == "" {
-		cfg.packageName = fileInfo.PackageName
+	if cfg.PackageName == "" {
+		cfg.PackageName = fileInfo.PackageName
 	}
 
-	if err := resolveImports(fileInfo, cfg.manualImports, cfg.inputFile); err != nil { //nolint:govet // shadow is intentional
+	if err := resolveImports(fileInfo, cfg.ManualImports, cfg.InputFile); err != nil { //nolint:govet // shadow is intentional
 		return err
 	}
 
 	// Detect cross-package generation
-	srcPkg, srcImport, err := detectCrossPackage(cfg.inputFile, cfg.outputPath, fileInfo.PackageName)
+	srcPkg, srcImport, err := detectCrossPackage(cfg.InputFile, cfg.OutputPath, fileInfo.PackageName)
 	if err != nil {
 		return err
 	}
 
-	templateText, err := loadTemplate(cfg.templatePath)
+	templateText, err := loadTemplate(cfg.TemplatePath)
 	if err != nil {
 		return err
 	}
 
 	// Generate main file
 	genInput := generator.GenerateInput{
-		PackageName: cfg.packageName,
+		PackageName: cfg.PackageName,
 		Defs:        fileInfo.ErrDefs,
 		SrcPkg:      srcPkg,
 		SrcImport:   srcImport,
-		NoHooks:     cfg.noHooks,
-		StackTrace:  cfg.stackTrace,
+		NoHooks:     cfg.NoHooks,
+		StackTrace:  cfg.StackTrace,
 	}
-	if err := generateFile(templateText, cfg.outputPath, genInput, cfg.dryRun); err != nil {
+	if err := generateFile(templateText, cfg.OutputPath, genInput, cfg.DryRun); err != nil {
 		return err
 	}
 
 	// Generate hook file
-	if !cfg.noHooks {
-		if err := generateHookFile(cfg.hookOutputPath, cfg.packageName, fileInfo.ErrDefs, cfg.dryRun); err != nil {
+	if !cfg.NoHooks {
+		if err := generateHookFile(cfg.HookOutputPath, cfg.PackageName, fileInfo.ErrDefs, cfg.DryRun); err != nil {
 			return err
 		}
 	}
@@ -188,7 +102,7 @@ func run(cfg *config) error {
 	return nil
 }
 
-func resolveImports(fileInfo *model.FileInfo, manualImports importMapFlag, inputFile string) error {
+func resolveImports(fileInfo *model.FileInfo, manualImports map[string]string, inputFile string) error {
 	var allTypes []string
 	for _, def := range fileInfo.ErrDefs {
 		for _, f := range def.Fields {
