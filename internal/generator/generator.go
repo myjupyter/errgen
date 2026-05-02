@@ -19,6 +19,8 @@ var (
 	DefaultErrgenHookTemplate string
 	//go:embed errgen.zap.tmpl
 	defaultErrgenZapTemplate string
+	//go:embed errgen.zerolog.tmpl
+	defaultErrgenZerologTemplate string
 )
 
 type Generator struct {
@@ -29,9 +31,11 @@ type Generator struct {
 // to the right slog/zap constructor instead of using a generic slog.Any /
 // zap.Any for everything.
 var templateFuncs = template.FuncMap{
-	"zapMethod":   zapEncoderMethod,
-	"slogMethod":  slogConstructorMethod,
-	"slogValueOf": slogValueExpr,
+	"zapMethod":      zapEncoderMethod,
+	"slogMethod":     slogConstructorMethod,
+	"slogValueOf":    slogValueExpr,
+	"zerologMethod":  zerologEventMethod,
+	"zerologValueOf": zerologValueExpr,
 }
 
 func New(templateText string) (*Generator, error) {
@@ -48,6 +52,11 @@ func New(templateText string) (*Generator, error) {
 	if _, err := temp.Parse(defaultErrgenZapTemplate); err != nil {
 		return nil, model.NewGenInvalidTemplateError("errgen.zap", err)
 	}
+	// Same for zerolog: parsed unconditionally so {{template "zerologMarshalZerologObject" .}}
+	// is always available, and dispatched via {{if $.Zerolog.Enabled}} in the main template.
+	if _, err := temp.Parse(defaultErrgenZerologTemplate); err != nil {
+		return nil, model.NewGenInvalidTemplateError("errgen.zerolog", err)
+	}
 	return &Generator{temp: temp}, nil
 }
 
@@ -60,6 +69,7 @@ type GenerateInput struct { //nolint:govet // readability over alignment
 	NoHooks     bool
 	StackTrace  bool
 	Zap         bool // emit zapcore.ObjectMarshaler implementation
+	Zerolog     bool // emit zerolog.LogObjectMarshaler implementation
 }
 
 // zapEncoderMethod returns the zapcore.ObjectEncoder method name for a given
@@ -67,11 +77,11 @@ type GenerateInput struct { //nolint:govet // readability over alignment
 // the template uses that to fall back to zap.Any(key, val).AddTo(enc)
 func zapEncoderMethod(goType string) string { //nolint:funlen,gocyclo // straight-line dispatch
 	switch goType {
-	case "bool":
+	case "bool": //nolint:goconst
 		return "AddBool"
-	case "string":
+	case "string": //nolint:goconst
 		return "AddString"
-	case "int":
+	case "int": //nolint:goconst
 		return "AddInt"
 	case "int8": //nolint:goconst
 		return "AddInt8"
@@ -79,7 +89,7 @@ func zapEncoderMethod(goType string) string { //nolint:funlen,gocyclo // straigh
 		return "AddInt16"
 	case "int32": //nolint:goconst
 		return "AddInt32"
-	case "int64":
+	case "int64": //nolint:goconst
 		return "AddInt64"
 	case "uint": //nolint:goconst
 		return "AddUint"
@@ -89,21 +99,21 @@ func zapEncoderMethod(goType string) string { //nolint:funlen,gocyclo // straigh
 		return "AddUint16"
 	case "uint32": //nolint:goconst
 		return "AddUint32"
-	case "uint64":
+	case "uint64": //nolint:goconst
 		return "AddUint64"
 	case "uintptr": //nolint:goconst
 		return "AddUintptr"
 	case "float32": //nolint:goconst
 		return "AddFloat32"
-	case "float64":
+	case "float64": //nolint:goconst
 		return "AddFloat64"
 	case "complex64":
 		return "AddComplex64"
 	case "complex128":
 		return "AddComplex128"
-	case "time.Duration":
+	case "time.Duration": //nolint:goconst
 		return "AddDuration"
-	case "time.Time":
+	case "time.Time": //nolint:goconst
 		return "AddTime"
 	case "[]byte":
 		return "AddBinary"
@@ -126,7 +136,7 @@ func slogConstructorMethod(goType string) string {
 	case "int8", "int16", "int32", "int64": //nolint:goconst
 		return "Int64"
 	case "uint", "uint8", "uint16", "uint32", "uint64", "uintptr": //nolint:goconst
-		return "Uint64"
+		return "Uint64" //nolint:goconst
 	case "float32", "float64": //nolint:goconst
 		return "Float64"
 	case "time.Time":
@@ -156,8 +166,65 @@ func slogValueExpr(goType, fieldName string) string {
 	}
 }
 
+// zerologEventMethod returns the zerolog.Event method name for a given Go field
+// type (e.g. "Str", "Int", "Time"). Returns "Interface" for types without a
+// direct method — the template uses that to fall back to event.Interface.
+func zerologEventMethod(goType string) string { //nolint:funlen,gocyclo // straight-line dispatch
+	switch goType {
+	case "bool":
+		return "Bool"
+	case "string":
+		return "Str"
+	case "int":
+		return "Int"
+	case "int8": //nolint:goconst
+		return "Int8"
+	case "int16": //nolint:goconst
+		return "Int16"
+	case "int32": //nolint:goconst
+		return "Int32"
+	case "int64":
+		return "Int64"
+	case "uint": //nolint:goconst
+		return "Uint"
+	case "uint8": //nolint:goconst
+		return "Uint8"
+	case "uint16": //nolint:goconst
+		return "Uint16"
+	case "uint32": //nolint:goconst
+		return "Uint32"
+	case "uint64":
+		return "Uint64" //nolint:goconst
+	case "uintptr":
+		return "Uint64" //nolint:goconst
+	case "float32": //nolint:goconst
+		return "Float32"
+	case "float64":
+		return "Float64"
+	case "time.Time":
+		return "Time"
+	case "time.Duration":
+		return "Dur"
+	case "[]byte":
+		return "Bytes"
+	default:
+		return "Interface"
+	}
+}
+
+// zerologValueExpr returns the value expression to pass to a zerolog.Event method.
+// Most types pass through as e.<Name>; uintptr requires widening to uint64 because
+// zerolog has no direct Uintptr method.
+func zerologValueExpr(goType, fieldName string) string {
+	base := "e." + fieldName
+	if goType == "uintptr" {
+		return "uint64(" + base + ")"
+	}
+	return base
+}
+
 // Generate renders Go source for the given error definitions
-func (g *Generator) Generate(in GenerateInput) ([]byte, error) {
+func (g *Generator) Generate(in GenerateInput) ([]byte, error) { //nolint:gocyclo // straight-line aggregation of per-def import flags
 	var tmplDefs []errDefData
 
 	for _, def := range in.Defs {
@@ -177,6 +244,7 @@ func (g *Generator) Generate(in GenerateInput) ([]byte, error) {
 	var imports []string
 	var needsFmt, needsSlog, needsJSON, needsErrors, needsHTTPStatus bool
 	zapData := zapTemplateData{Enabled: in.Zap}
+	zerologData := zerologTemplateData{Enabled: in.Zerolog}
 	for _, d := range tmplDefs {
 		if d.ErrorFormat != nil {
 			needsFmt = true
@@ -186,6 +254,9 @@ func (g *Generator) Generate(in GenerateInput) ([]byte, error) {
 			needsJSON = true
 			if in.Zap {
 				zapData.NeedsZapcore = true
+			}
+			if in.Zerolog {
+				zerologData.NeedsZerolog = true
 			}
 		}
 		if len(d.WrappedFields) > 0 {
@@ -222,6 +293,7 @@ func (g *Generator) Generate(in GenerateInput) ([]byte, error) {
 		StackTrace:      in.StackTrace,
 		NoHooks:         in.NoHooks,
 		Zap:             zapData,
+		Zerolog:         zerologData,
 	}
 
 	var buf bytes.Buffer
