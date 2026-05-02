@@ -26,3 +26,9 @@ func (e *InternalError) onCreate() {
 func (e *GenericError) onCreate() {
 	// put custom logic here
 }
+
+// onCreate is a hook for user custom logic
+// the code inside must not panic
+func (e *NotAuthError) onCreate() {
+	// put custom logic here
+}

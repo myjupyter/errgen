@@ -237,147 +237,35 @@ func ExtractPkgName(typ string) string {
 	return ""
 }
 
-// findBulitin searches in bultin packages and returns bultin package path
-func findBuiltin(pkgName string) (string, bool) { //nolint:funlen,gocyclo // Bultin-in packages list
+// findBuiltin maps a short Go package name (e.g. "http", "json", "time") to
+// its full stdlib import path (e.g. "net/http", "encoding/json", "time").
+// Ambiguous short names whose basename appears in more than one stdlib path
+// — `template` (text/template vs html/template), `rand` (math/rand vs
+// crypto/rand), `pprof` (net/http/pprof vs runtime/pprof), `scanner`
+// (go/scanner vs text/scanner) — are deliberately omitted; users should
+// disambiguate with `-m`.
+func findBuiltin(pkgName string) (string, bool) { //nolint:funlen,gocyclo // straight-line dispatch
 	switch pkgName {
-	case "archive/tar":
+	// archive
+	case "tar":
 		return "archive/tar", true
-	case "archive/zip":
+	case "zip":
 		return "archive/zip", true
+	// top-level / single-segment
 	case "bufio":
 		return "bufio", true
 	case "bytes":
 		return "bytes", true
 	case "cmp":
 		return "cmp", true
-	case "compress/bzip2":
-		return "compress/bzip2", true
-	case "compress/flate":
-		return "compress/flate", true
-	case "compress/gzip":
-		return "compress/gzip", true
-	case "compress/lzw":
-		return "compress/lzw", true
-	case "compress/zlib":
-		return "compress/zlib", true
-	case "container/heap":
-		return "container/heap", true
-	case "container/list":
-		return "container/list", true
-	case "container/ring":
-		return "container/ring", true
 	case "context":
 		return "context", true
 	case "crypto":
 		return "crypto", true
-	case "crypto/aes":
-		return "crypto/aes", true
-	case "crypto/cipher":
-		return "crypto/cipher", true
-	case "crypto/des":
-		return "crypto/des", true
-	case "crypto/dsa":
-		return "crypto/dsa", true
-	case "crypto/ecdh":
-		return "crypto/ecdh", true
-	case "crypto/ecdsa":
-		return "crypto/ecdsa", true
-	case "crypto/ed25519":
-		return "crypto/ed25519", true
-	case "crypto/elliptic":
-		return "crypto/elliptic", true
-	case "crypto/hmac":
-		return "crypto/hmac", true
-	case "crypto/internal/alias":
-		return "crypto/internal/alias", true
-	case "crypto/internal/bigmod":
-		return "crypto/internal/bigmod", true
-	case "crypto/internal/boring":
-		return "crypto/internal/boring", true
-	case "crypto/internal/boring/bbig":
-		return "crypto/internal/boring/bbig", true
-	case "crypto/internal/boring/bcache":
-		return "crypto/internal/boring/bcache", true
-	case "crypto/internal/boring/sig":
-		return "crypto/internal/boring/sig", true
-	case "crypto/internal/edwards25519":
-		return "crypto/internal/edwards25519", true
-	case "crypto/internal/edwards25519/field":
-		return "crypto/internal/edwards25519/field", true
-	case "crypto/internal/nistec":
-		return "crypto/internal/nistec", true
-	case "crypto/internal/nistec/fiat":
-		return "crypto/internal/nistec/fiat", true
-	case "crypto/internal/randutil":
-		return "crypto/internal/randutil", true
-	case "crypto/md5":
-		return "crypto/md5", true
-	case "crypto/rand":
-		return "crypto/rand", true
-	case "crypto/rc4":
-		return "crypto/rc4", true
-	case "crypto/rsa":
-		return "crypto/rsa", true
-	case "crypto/sha1":
-		return "crypto/sha1", true
-	case "crypto/sha256":
-		return "crypto/sha256", true
-	case "crypto/sha512":
-		return "crypto/sha512", true
-	case "crypto/subtle":
-		return "crypto/subtle", true
-	case "crypto/tls":
-		return "crypto/tls", true
-	case "crypto/x509":
-		return "crypto/x509", true
-	case "crypto/x509/pkix":
-		return "crypto/x509/pkix", true
-	case "database/sql":
-		return "database/sql", true
-	case "database/sql/driver":
-		return "database/sql/driver", true
-	case "debug/buildinfo":
-		return "debug/buildinfo", true
-	case "debug/dwarf":
-		return "debug/dwarf", true
-	case "debug/elf":
-		return "debug/elf", true
-	case "debug/gosym":
-		return "debug/gosym", true
-	case "debug/macho":
-		return "debug/macho", true
-	case "debug/pe":
-		return "debug/pe", true
-	case "debug/plan9obj":
-		return "debug/plan9obj", true
 	case "embed":
 		return "embed", true
-	case "embed/internal/embedtest":
-		return "embed/internal/embedtest", true
 	case "encoding":
 		return "encoding", true
-	case "encoding/ascii85":
-		return "encoding/ascii85", true
-	case "encoding/asn1":
-		return "encoding/asn1", true
-	case "encoding/base32":
-		return "encoding/base32", true
-	case "encoding/base64":
-		return "encoding/base64", true
-	case "encoding/binary":
-		return "encoding/binary", true
-	case "encoding/csv":
-		return "encoding/csv", true
-	case "encoding/gob":
-		return "encoding/gob", true
-	case "encoding/hex":
-		return "encoding/hex", true
-	case "encoding/json":
-		return "encoding/json", true
-	case "encoding/pem":
-		return "encoding/pem", true
-	case "encoding/xml":
-		return "encoding/xml", true
 	case "errors":
 		return "errors", true
 	case "expvar":
@@ -386,356 +274,36 @@ func findBuiltin(pkgName string) (string, bool) { //nolint:funlen,gocyclo // Bul
 		return "flag", true
 	case "fmt":
 		return "fmt", true
-	case "go/ast":
-		return "go/ast", true
-	case "go/build":
-		return "go/build", true
-	case "go/build/constraint":
-		return "go/build/constraint", true
-	case "go/constant":
-		return "go/constant", true
-	case "go/doc":
-		return "go/doc", true
-	case "go/doc/comment":
-		return "go/doc/comment", true
-	case "go/format":
-		return "go/format", true
-	case "go/importer":
-		return "go/importer", true
-	case "go/internal/gccgoimporter":
-		return "go/internal/gccgoimporter", true
-	case "go/internal/gcimporter":
-		return "go/internal/gcimporter", true
-	case "go/internal/srcimporter":
-		return "go/internal/srcimporter", true
-	case "go/internal/typeparams":
-		return "go/internal/typeparams", true
-	case "go/parser":
-		return "go/parser", true
-	case "go/printer":
-		return "go/printer", true
-	case "go/scanner":
-		return "go/scanner", true
-	case "go/token":
-		return "go/token", true
-	case "go/types":
-		return "go/types", true
-	case "go/version":
-		return "go/version", true
 	case "hash":
 		return "hash", true
-	case "hash/adler32":
-		return "hash/adler32", true
-	case "hash/crc32":
-		return "hash/crc32", true
-	case "hash/crc64":
-		return "hash/crc64", true
-	case "hash/fnv":
-		return "hash/fnv", true
-	case "hash/maphash":
-		return "hash/maphash", true
 	case "html":
 		return "html", true
-	case "html/template":
-		return "html/template", true
 	case "image":
 		return "image", true
-	case "image/color":
-		return "image/color", true
-	case "image/color/palette":
-		return "image/color/palette", true
-	case "image/draw":
-		return "image/draw", true
-	case "image/gif":
-		return "image/gif", true
-	case "image/internal/imageutil":
-		return "image/internal/imageutil", true
-	case "image/jpeg":
-		return "image/jpeg", true
-	case "image/png":
-		return "image/png", true
-	case "index/suffixarray":
-		return "index/suffixarray", true
-	case "internal/abi":
-		return "internal/abi", true
-	case "internal/bisect":
-		return "internal/bisect", true
-	case "internal/buildcfg":
-		return "internal/buildcfg", true
-	case "internal/bytealg":
-		return "internal/bytealg", true
-	case "internal/cfg":
-		return "internal/cfg", true
-	case "internal/chacha8rand":
-		return "internal/chacha8rand", true
-	case "internal/coverage":
-		return "internal/coverage", true
-	case "internal/coverage/calloc":
-		return "internal/coverage/calloc", true
-	case "internal/coverage/cformat":
-		return "internal/coverage/cformat", true
-	case "internal/coverage/cmerge":
-		return "internal/coverage/cmerge", true
-	case "internal/coverage/decodecounter":
-		return "internal/coverage/decodecounter", true
-	case "internal/coverage/decodemeta":
-		return "internal/coverage/decodemeta", true
-	case "internal/coverage/encodecounter":
-		return "internal/coverage/encodecounter", true
-	case "internal/coverage/encodemeta":
-		return "internal/coverage/encodemeta", true
-	case "internal/coverage/pods":
-		return "internal/coverage/pods", true
-	case "internal/coverage/rtcov":
-		return "internal/coverage/rtcov", true
-	case "internal/coverage/slicereader":
-		return "internal/coverage/slicereader", true
-	case "internal/coverage/slicewriter":
-		return "internal/coverage/slicewriter", true
-	case "internal/coverage/stringtab":
-		return "internal/coverage/stringtab", true
-	case "internal/coverage/test":
-		return "internal/coverage/test", true
-	case "internal/coverage/uleb128":
-		return "internal/coverage/uleb128", true
-	case "internal/cpu":
-		return "internal/cpu", true
-	case "internal/dag":
-		return "internal/dag", true
-	case "internal/diff":
-		return "internal/diff", true
-	case "internal/fmtsort":
-		return "internal/fmtsort", true
-	case "internal/fuzz":
-		return "internal/fuzz", true
-	case "internal/goarch":
-		return "internal/goarch", true
-	case "internal/godebug":
-		return "internal/godebug", true
-	case "internal/godebugs":
-		return "internal/godebugs", true
-	case "internal/goexperiment":
-		return "internal/goexperiment", true
-	case "internal/goos":
-		return "internal/goos", true
-	case "internal/goroot":
-		return "internal/goroot", true
-	case "internal/gover":
-		return "internal/gover", true
-	case "internal/goversion":
-		return "internal/goversion", true
-	case "internal/intern":
-		return "internal/intern", true
-	case "internal/itoa":
-		return "internal/itoa", true
-	case "internal/lazyregexp":
-		return "internal/lazyregexp", true
-	case "internal/lazytemplate":
-		return "internal/lazytemplate", true
-	case "internal/nettrace":
-		return "internal/nettrace", true
-	case "internal/obscuretestdata":
-		return "internal/obscuretestdata", true
-	case "internal/oserror":
-		return "internal/oserror", true
-	case "internal/pkgbits":
-		return "internal/pkgbits", true
-	case "internal/platform":
-		return "internal/platform", true
-	case "internal/poll":
-		return "internal/poll", true
-	case "internal/profile":
-		return "internal/profile", true
-	case "internal/race":
-		return "internal/race", true
-	case "internal/reflectlite":
-		return "internal/reflectlite", true
-	case "internal/safefilepath":
-		return "internal/safefilepath", true
-	case "internal/saferio":
-		return "internal/saferio", true
-	case "internal/singleflight":
-		return "internal/singleflight", true
-	case "internal/syscall/execenv":
-		return "internal/syscall/execenv", true
-	case "internal/syscall/unix":
-		return "internal/syscall/unix", true
-	case "internal/sysinfo":
-		return "internal/sysinfo", true
-	case "internal/testenv":
-		return "internal/testenv", true
-	case "internal/testlog":
-		return "internal/testlog", true
-	case "internal/testpty":
-		return "internal/testpty", true
-	case "internal/trace":
-		return "internal/trace", true
-	case "internal/trace/traceviewer":
-		return "internal/trace/traceviewer", true
-	case "internal/trace/traceviewer/format":
-		return "internal/trace/traceviewer/format", true
-	case "internal/trace/v2":
-		return "internal/trace/v2", true
-	case "internal/trace/v2/event":
-		return "internal/trace/v2/event", true
-	case "internal/trace/v2/event/go122":
-		return "internal/trace/v2/event/go122", true
-	case "internal/trace/v2/internal/testgen/go122":
-		return "internal/trace/v2/internal/testgen/go122", true
-	case "internal/trace/v2/raw":
-		return "internal/trace/v2/raw", true
-	case "internal/trace/v2/testtrace":
-		return "internal/trace/v2/testtrace", true
-	case "internal/trace/v2/version":
-		return "internal/trace/v2/version", true
-	case "internal/txtar":
-		return "internal/txtar", true
-	case "internal/types/errors":
-		return "internal/types/errors", true
-	case "internal/unsafeheader":
-		return "internal/unsafeheader", true
-	case "internal/xcoff":
-		return "internal/xcoff", true
-	case "internal/zstd":
-		return "internal/zstd", true
 	case "io":
 		return "io", true
-	case "io/fs":
-		return "io/fs", true
-	case "io/ioutil":
-		return "io/ioutil", true
 	case "log":
 		return "log", true
-	case "log/internal":
-		return "log/internal", true
-	case "log/slog":
-		return "log/slog", true
-	case "log/slog/internal":
-		return "log/slog/internal", true
-	case "log/slog/internal/benchmarks":
-		return "log/slog/internal/benchmarks", true
-	case "log/slog/internal/buffer":
-		return "log/slog/internal/buffer", true
-	case "log/slog/internal/slogtest":
-		return "log/slog/internal/slogtest", true
-	case "log/syslog":
-		return "log/syslog", true
 	case "maps":
 		return "maps", true
 	case "math":
 		return "math", true
-	case "math/big":
-		return "math/big", true
-	case "math/bits":
-		return "math/bits", true
-	case "math/cmplx":
-		return "math/cmplx", true
-	case "math/rand":
-		return "math/rand", true
-	case "math/rand/v2":
-		return "math/rand/v2", true
 	case "mime":
 		return "mime", true
-	case "mime/multipart":
-		return "mime/multipart", true
-	case "mime/quotedprintable":
-		return "mime/quotedprintable", true
 	case "net":
 		return "net", true
-	case "net/http":
-		return "net/http", true
-	case "net/http/cgi":
-		return "net/http/cgi", true
-	case "net/http/cookiejar":
-		return "net/http/cookiejar", true
-	case "net/http/fcgi":
-		return "net/http/fcgi", true
-	case "net/http/httptest":
-		return "net/http/httptest", true
-	case "net/http/httptrace":
-		return "net/http/httptrace", true
-	case "net/http/httputil":
-		return "net/http/httputil", true
-	case "net/http/internal":
-		return "net/http/internal", true
-	case "net/http/internal/ascii":
-		return "net/http/internal/ascii", true
-	case "net/http/internal/testcert":
-		return "net/http/internal/testcert", true
-	case "net/http/pprof":
-		return "net/http/pprof", true
-	case "net/internal/socktest":
-		return "net/internal/socktest", true
-	case "net/mail":
-		return "net/mail", true
-	case "net/netip":
-		return "net/netip", true
-	case "net/rpc":
-		return "net/rpc", true
-	case "net/rpc/jsonrpc":
-		return "net/rpc/jsonrpc", true
-	case "net/smtp":
-		return "net/smtp", true
-	case "net/textproto":
-		return "net/textproto", true
-	case "net/url":
-		return "net/url", true
 	case "os":
 		return "os", true
-	case "os/exec":
-		return "os/exec", true
-	case "os/exec/internal/fdtest":
-		return "os/exec/internal/fdtest", true
-	case "os/signal":
-		return "os/signal", true
-	case "os/user":
-		return "os/user", true
 	case "path":
 		return "path", true
-	case "path/filepath":
-		return "path/filepath", true
 	case "plugin":
 		return "plugin", true
 	case "reflect":
 		return "reflect", true
-	case "reflect/internal/example1":
-		return "reflect/internal/example1", true
-	case "reflect/internal/example2":
-		return "reflect/internal/example2", true
 	case "regexp":
 		return "regexp", true
-	case "regexp/syntax":
-		return "regexp/syntax", true
 	case "runtime":
 		return "runtime", true
-	case "runtime/cgo":
-		return "runtime/cgo", true
-	case "runtime/coverage":
-		return "runtime/coverage", true
-	case "runtime/debug":
-		return "runtime/debug", true
-	case "runtime/internal/atomic":
-		return "runtime/internal/atomic", true
-	case "runtime/internal/math":
-		return "runtime/internal/math", true
-	case "runtime/internal/startlinetest":
-		return "runtime/internal/startlinetest", true
-	case "runtime/internal/sys":
-		return "runtime/internal/sys", true
-	case "runtime/internal/syscall":
-		return "runtime/internal/syscall", true
-	case "runtime/internal/wasitest":
-		return "runtime/internal/wasitest", true
-	case "runtime/metrics":
-		return "runtime/metrics", true
-	case "runtime/pprof":
-		return "runtime/pprof", true
-	case "runtime/race":
-		return "runtime/race", true
-	case "runtime/race/internal/amd64v1":
-		return "runtime/race/internal/amd64v1", true
-	case "runtime/trace":
-		return "runtime/trace", true
 	case "slices":
 		return "slices", true
 	case "sort":
@@ -746,42 +314,269 @@ func findBuiltin(pkgName string) (string, bool) { //nolint:funlen,gocyclo // Bul
 		return "strings", true
 	case "sync":
 		return "sync", true
-	case "sync/atomic":
-		return "sync/atomic", true
 	case "syscall":
 		return "syscall", true
 	case "testing":
 		return "testing", true
-	case "testing/fstest":
-		return "testing/fstest", true
-	case "testing/internal/testdeps":
-		return "testing/internal/testdeps", true
-	case "testing/iotest":
-		return "testing/iotest", true
-	case "testing/quick":
-		return "testing/quick", true
-	case "testing/slogtest":
-		return "testing/slogtest", true
-	case "text/scanner":
-		return "text/scanner", true
-	case "text/tabwriter":
-		return "text/tabwriter", true
-	case "text/template":
-		return "text/template", true
-	case "text/template/parse":
-		return "text/template/parse", true
 	case "time":
 		return "time", true
-	case "time/tzdata":
-		return "time/tzdata", true
 	case "unicode":
 		return "unicode", true
-	case "unicode/utf16":
-		return "unicode/utf16", true
-	case "unicode/utf8":
-		return "unicode/utf8", true
 	case "unsafe":
 		return "unsafe", true
+	// compress
+	case "bzip2":
+		return "compress/bzip2", true
+	case "flate":
+		return "compress/flate", true
+	case "gzip":
+		return "compress/gzip", true
+	case "lzw":
+		return "compress/lzw", true
+	case "zlib":
+		return "compress/zlib", true
+	// container
+	case "heap":
+		return "container/heap", true
+	case "list":
+		return "container/list", true
+	case "ring":
+		return "container/ring", true
+	// crypto/*
+	case "aes":
+		return "crypto/aes", true
+	case "cipher":
+		return "crypto/cipher", true
+	case "des":
+		return "crypto/des", true
+	case "dsa":
+		return "crypto/dsa", true
+	case "ecdh":
+		return "crypto/ecdh", true
+	case "ecdsa":
+		return "crypto/ecdsa", true
+	case "ed25519":
+		return "crypto/ed25519", true
+	case "elliptic":
+		return "crypto/elliptic", true
+	case "hmac":
+		return "crypto/hmac", true
+	case "md5":
+		return "crypto/md5", true
+	case "rc4":
+		return "crypto/rc4", true
+	case "rsa":
+		return "crypto/rsa", true
+	case "sha1":
+		return "crypto/sha1", true
+	case "sha256":
+		return "crypto/sha256", true
+	case "sha512":
+		return "crypto/sha512", true
+	case "subtle":
+		return "crypto/subtle", true
+	case "tls":
+		return "crypto/tls", true
+	case "x509":
+		return "crypto/x509", true
+	case "pkix":
+		return "crypto/x509/pkix", true
+	// database/sql
+	case "sql":
+		return "database/sql", true
+	case "driver":
+		return "database/sql/driver", true
+	// debug
+	case "buildinfo":
+		return "debug/buildinfo", true
+	case "dwarf":
+		return "debug/dwarf", true
+	case "elf":
+		return "debug/elf", true
+	case "gosym":
+		return "debug/gosym", true
+	case "macho":
+		return "debug/macho", true
+	case "pe":
+		return "debug/pe", true
+	case "plan9obj":
+		return "debug/plan9obj", true
+	// encoding/*
+	case "ascii85":
+		return "encoding/ascii85", true
+	case "asn1":
+		return "encoding/asn1", true
+	case "base32":
+		return "encoding/base32", true
+	case "base64":
+		return "encoding/base64", true
+	case "binary":
+		return "encoding/binary", true
+	case "csv":
+		return "encoding/csv", true
+	case "gob":
+		return "encoding/gob", true
+	case "hex":
+		return "encoding/hex", true
+	case "json":
+		return "encoding/json", true
+	case "pem":
+		return "encoding/pem", true
+	case "xml":
+		return "encoding/xml", true
+	// go/*
+	case "ast":
+		return "go/ast", true
+	case "build":
+		return "go/build", true
+	case "constraint":
+		return "go/build/constraint", true
+	case "constant":
+		return "go/constant", true
+	case "doc":
+		return "go/doc", true
+	case "comment":
+		return "go/doc/comment", true
+	case "format":
+		return "go/format", true
+	case "importer":
+		return "go/importer", true
+	case "parser":
+		return "go/parser", true
+	case "printer":
+		return "go/printer", true
+	case "token":
+		return "go/token", true
+	case "types":
+		return "go/types", true
+	// hash
+	case "adler32":
+		return "hash/adler32", true
+	case "crc32":
+		return "hash/crc32", true
+	case "crc64":
+		return "hash/crc64", true
+	case "fnv":
+		return "hash/fnv", true
+	case "maphash":
+		return "hash/maphash", true
+	// image
+	case "color":
+		return "image/color", true
+	case "palette":
+		return "image/color/palette", true
+	case "draw":
+		return "image/draw", true
+	case "gif":
+		return "image/gif", true
+	case "jpeg":
+		return "image/jpeg", true
+	case "png":
+		return "image/png", true
+	case "suffixarray":
+		return "index/suffixarray", true
+	// io
+	case "fs":
+		return "io/fs", true
+	case "ioutil":
+		return "io/ioutil", true
+	// log
+	case "slog":
+		return "log/slog", true
+	case "syslog":
+		return "log/syslog", true
+	// math/*
+	case "big":
+		return "math/big", true
+	case "bits":
+		return "math/bits", true
+	case "cmplx":
+		return "math/cmplx", true
+	// mime
+	case "multipart":
+		return "mime/multipart", true
+	case "quotedprintable":
+		return "mime/quotedprintable", true
+	// net/*
+	case "http":
+		return "net/http", true
+	case "cgi":
+		return "net/http/cgi", true
+	case "cookiejar":
+		return "net/http/cookiejar", true
+	case "fcgi":
+		return "net/http/fcgi", true
+	case "httptest":
+		return "net/http/httptest", true
+	case "httptrace":
+		return "net/http/httptrace", true
+	case "httputil":
+		return "net/http/httputil", true
+	case "mail":
+		return "net/mail", true
+	case "netip":
+		return "net/netip", true
+	case "rpc":
+		return "net/rpc", true
+	case "jsonrpc":
+		return "net/rpc/jsonrpc", true
+	case "smtp":
+		return "net/smtp", true
+	case "textproto":
+		return "net/textproto", true
+	case "url":
+		return "net/url", true
+	// os
+	case "exec":
+		return "os/exec", true
+	case "signal":
+		return "os/signal", true
+	case "user":
+		return "os/user", true
+	// path
+	case "filepath":
+		return "path/filepath", true
+	// regexp
+	case "syntax":
+		return "regexp/syntax", true
+	// runtime
+	case "cgo":
+		return "runtime/cgo", true
+	case "coverage":
+		return "runtime/coverage", true
+	case "metrics":
+		return "runtime/metrics", true
+	case "race":
+		return "runtime/race", true
+	case "trace":
+		return "runtime/trace", true
+	case "debug":
+		return "runtime/debug", true
+	// sync
+	case "atomic":
+		return "sync/atomic", true
+	// testing
+	case "fstest":
+		return "testing/fstest", true
+	case "iotest":
+		return "testing/iotest", true
+	case "quick":
+		return "testing/quick", true
+	case "slogtest":
+		return "testing/slogtest", true
+	// text
+	case "tabwriter":
+		return "text/tabwriter", true
+	case "parse":
+		return "text/template/parse", true
+	// time
+	case "tzdata":
+		return "time/tzdata", true
+	// unicode
+	case "utf16":
+		return "unicode/utf16", true
+	case "utf8":
+		return "unicode/utf8", true
 	default:
 		return "", false
 	}

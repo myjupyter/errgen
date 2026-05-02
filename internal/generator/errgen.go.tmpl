@@ -2,7 +2,7 @@
 
 package {{.PackageName}}
 
-{{- if or .NeedsFmt .NeedsSlog .NeedsJSON .NeedsErrors .NeedsHTTPStatus .StackTrace .Zap.NeedsZapcore .Zap.NeedsZap .Zerolog.NeedsZerolog .OTel.NeedsAttribute (gt (len .Imports) 0)}}
+{{- if or .NeedsFmt .NeedsSlog .NeedsJSON .NeedsErrors .StackTrace .Zap.NeedsZapcore .Zap.NeedsZap .Zerolog.NeedsZerolog .OTel.NeedsAttribute (gt (len .Imports) 0)}}
 
 import (
 {{- if .NeedsJSON}}
@@ -16,9 +16,6 @@ import (
 {{- end}}
 {{- if .NeedsSlog}}
 	"log/slog"
-{{- end}}
-{{- if .NeedsHTTPStatus}}
-	"net/http"
 {{- end}}
 {{- if .StackTrace}}
 	"runtime"
@@ -83,7 +80,7 @@ func (e *{{.TypeName}}) Unwrap() error {
 
 // StatusCode returns the HTTP status code for this error
 func (e *{{.TypeName}}) StatusCode() int {
-	return {{.Code}}
+	return {{.Code.Expr}}
 }
 {{- end}}
 {{- if .Fields}}

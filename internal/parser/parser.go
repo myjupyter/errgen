@@ -158,11 +158,11 @@ func parseAnnotation(text string, def *model.ErrDef) error {
 
 	// @Code(...) — HTTP status code annotation
 	if strings.HasPrefix(text, "@Code(") {
-		code, err := parseCodeAnnotation(text)
+		expr, err := parseCodeAnnotation(text)
 		if err != nil {
 			return err
 		}
-		def.Code = &code
+		def.Code = &model.CodeDef{Expr: expr}
 		return nil
 	}
 
