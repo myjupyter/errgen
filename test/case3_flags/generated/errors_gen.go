@@ -32,6 +32,7 @@ func (e *HTTPError) Unwrap() error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *HTTPError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("statusCode", e.StatusCode),
 	)
 }
@@ -93,6 +94,7 @@ func (e *TimeoutError) Unwrap() error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *TimeoutError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("endpoint", e.Endpoint),
 		slog.Any("timeout", e.Timeout),
 	)

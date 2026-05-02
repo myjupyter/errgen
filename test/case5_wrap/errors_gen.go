@@ -32,6 +32,7 @@ func (e *WrapSingleError) Unwrap() []error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *WrapSingleError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("inner", e.Inner),
 	)
 }
@@ -97,6 +98,7 @@ func (e *WrapTwoError) Unwrap() []error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *WrapTwoError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("first", e.First),
 		slog.Any("second", e.Second),
 	)
@@ -173,6 +175,7 @@ func (e *WrapChainError) Unwrap() []error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *WrapChainError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("cause", e.Cause),
 		slog.Any("underlying", e.Underlying),
 		slog.Any("root", e.Root),
@@ -257,6 +260,7 @@ func (e *WrapNoFormatError) Unwrap() []error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *WrapNoFormatError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("err", e.Err),
 	)
 }

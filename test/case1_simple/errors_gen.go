@@ -37,6 +37,7 @@ func (e *ApplicationError) Unwrap() error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *ApplicationError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("code", e.Code),
 		slog.Any("message", e.Message),
 		slog.Any("errTime", e.ErrTime),
@@ -115,6 +116,7 @@ func (e *NotFoundError) Unwrap() error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *NotFoundError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("reason", e.Reason),
 	)
 }
@@ -175,6 +177,7 @@ func (e *InternalError) Unwrap() []error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *InternalError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("wrappedError", e.WrappedError),
 	)
 }
@@ -240,6 +243,7 @@ func (e *TimeoutError) Unwrap() error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *TimeoutError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("timeout", e.Timeout),
 		slog.Any("endpoint", e.Endpoint),
 	)
@@ -333,6 +337,7 @@ func (e *InvalidErrError) Unwrap() error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *InvalidErrError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("code", e.Code),
 		slog.Any("domain", e.Domain),
 	)

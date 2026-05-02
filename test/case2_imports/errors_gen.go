@@ -36,6 +36,7 @@ func (e *ProcessingError) Unwrap() error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *ProcessingError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("item", e.Item),
 		slog.Any("mapping", e.Mapping),
 		slog.Any("tags", e.Tags),
@@ -110,6 +111,7 @@ func (e *MultiImportError) Unwrap() error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *MultiImportError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("ptr", e.Ptr),
 		slog.Any("detailSlice", e.DetailSlice),
 		slog.Any("tagMap", e.TagMap),

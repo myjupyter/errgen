@@ -34,4 +34,5 @@ var ErrorMethods = map[string]struct{}{
 	"Error":  {},
 	"Is":     {},
 	"Unwrap": {},
+	"error":  {}, // reserved: auto-emitted as the "error" key by MarshalJSON / LogValue / MarshalLogObject
 }

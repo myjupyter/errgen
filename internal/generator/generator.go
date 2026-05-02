@@ -42,6 +42,57 @@ type GenerateInput struct { //nolint:govet // readability over alignment
 	SrcImport   string // full import path of the source package
 	NoHooks     bool
 	StackTrace  bool
+	Zap         bool // emit zapcore.ObjectMarshaler implementation
+}
+
+// zapEncoderMethod returns the zapcore.ObjectEncoder method name for a given
+// Go field type. Returns "Any" for types without a direct encoder method —
+// the template uses that to fall back to zap.Any(key, val).AddTo(enc).
+func zapEncoderMethod(goType string) string {
+	switch goType {
+	case "bool":
+		return "AddBool"
+	case "string":
+		return "AddString"
+	case "int":
+		return "AddInt"
+	case "int8":
+		return "AddInt8"
+	case "int16":
+		return "AddInt16"
+	case "int32":
+		return "AddInt32"
+	case "int64":
+		return "AddInt64"
+	case "uint":
+		return "AddUint"
+	case "uint8":
+		return "AddUint8"
+	case "uint16":
+		return "AddUint16"
+	case "uint32":
+		return "AddUint32"
+	case "uint64":
+		return "AddUint64"
+	case "uintptr":
+		return "AddUintptr"
+	case "float32":
+		return "AddFloat32"
+	case "float64":
+		return "AddFloat64"
+	case "complex64":
+		return "AddComplex64"
+	case "complex128":
+		return "AddComplex128"
+	case "time.Duration":
+		return "AddDuration"
+	case "time.Time":
+		return "AddTime"
+	case "[]byte":
+		return "AddBinary"
+	default:
+		return "Any"
+	}
 }
 
 // Generate renders Go source for the given error definitions
@@ -64,6 +115,7 @@ func (g *Generator) Generate(in GenerateInput) ([]byte, error) {
 	seen := make(map[string]bool)
 	var imports []string
 	var needsFmt, needsSlog, needsJSON, needsErrors, needsHTTPStatus bool
+	zapData := zapTemplateData{Enabled: in.Zap}
 	for _, d := range tmplDefs {
 		if d.ErrorFormat != nil {
 			needsFmt = true
@@ -71,6 +123,9 @@ func (g *Generator) Generate(in GenerateInput) ([]byte, error) {
 		if len(d.Fields) > 0 {
 			needsSlog = true
 			needsJSON = true
+			if in.Zap {
+				zapData.NeedsZapcore = true
+			}
 		}
 		if len(d.WrappedFields) > 0 {
 			needsErrors = true
@@ -82,6 +137,9 @@ func (g *Generator) Generate(in GenerateInput) ([]byte, error) {
 			if f.ImportPath != "" && !seen[f.ImportPath] {
 				seen[f.ImportPath] = true
 				imports = append(imports, f.ImportPath)
+			}
+			if in.Zap && f.Type != "error" && f.ZapMethod == "Any" {
+				zapData.NeedsZap = true
 			}
 		}
 	}
@@ -102,6 +160,7 @@ func (g *Generator) Generate(in GenerateInput) ([]byte, error) {
 		NeedsHTTPStatus: needsHTTPStatus,
 		StackTrace:      in.StackTrace,
 		NoHooks:         in.NoHooks,
+		Zap:             zapData,
 	}
 
 	var buf bytes.Buffer
@@ -136,6 +195,7 @@ func buildFieldsData(fields []*model.Field) []fieldData {
 			NameLower:  varNameLowered,
 			Type:       f.Type,
 			ImportPath: f.ImportPath,
+			ZapMethod:  zapEncoderMethod(f.Type),
 		})
 	}
 	return data

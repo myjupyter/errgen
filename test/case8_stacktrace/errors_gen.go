@@ -35,6 +35,7 @@ func (e *ApplicationError) Unwrap() error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *ApplicationError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("code", e.Code),
 		slog.Any("message", e.Message),
 	)
@@ -110,6 +111,7 @@ func (e *InternalError) Unwrap() []error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *InternalError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("wrappedError", e.WrappedError),
 	)
 }
