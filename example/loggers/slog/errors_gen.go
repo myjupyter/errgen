@@ -4,6 +4,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"time"
 )
@@ -148,6 +149,73 @@ func NewInternalError(stringField string, int64Field int64, intField int, uint64
 		IntSliceField:    intSliceField,
 		ObjectSliceField: objectSliceField,
 		MapType:          mapType,
+	}
+	return e
+}
+
+// EntityNotFoundError is a rich error type wrapping [ErrEntityNotFound]
+type EntityNotFoundError struct {
+	EntityType string
+	ID         int
+}
+
+// Error implements the error interface
+func (e *EntityNotFoundError) Error() string {
+	return fmt.Sprintf("'%v' with ID %v not found", e.EntityType, e.ID)
+}
+
+// Is reports whether the target matches [ErrEntityNotFound]
+func (e *EntityNotFoundError) Is(target error) bool {
+	return target == ErrEntityNotFound
+}
+
+// Unwrap returns the underlying error(s)
+func (e *EntityNotFoundError) Unwrap() error {
+	return ErrEntityNotFound
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *EntityNotFoundError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.String("error", e.Error()),
+		slog.String("entityType", e.EntityType),
+		slog.Int("iD", e.ID),
+	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *EntityNotFoundError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error      string `json:"error"`
+		EntityType string `json:"entityType"`
+		ID         int    `json:"iD"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.EntityType = e.EntityType
+	d.ID = e.ID
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *EntityNotFoundError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		EntityType string `json:"entityType"`
+		ID         int    `json:"iD"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.EntityType = d.EntityType
+	e.ID = d.ID
+	return nil
+}
+
+// NewEntityNotFoundError creates a new EntityNotFoundError
+func NewEntityNotFoundError(entityType string, iD int) *EntityNotFoundError {
+	e := &EntityNotFoundError{
+		EntityType: entityType,
+		ID:         iD,
 	}
 	return e
 }

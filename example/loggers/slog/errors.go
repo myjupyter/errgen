@@ -19,5 +19,11 @@ import "errors"
 // @MapType map[string]string
 var ErrInternal = errors.New("internal error")
 
+// @EntityType string
+// @ID int
+// Code(404)
+// @Error("'%EntityType' with ID %ID not found")
+var ErrEntityNotFound = errors.New("entity not found")
+
 type Object struct {
 }

@@ -3,7 +3,7 @@
 Go code generator for rich error types. Stdlib only, zero dependencies.
 
 - Annotate `errors.New` sentinels with fields and a format string
-- Generates struct, constructor, and full error/slog/json interfaces
+- Generates struct, constructor, and full error/json/[logging](#structured-logging) interfaces
 - Errors as data containers - carry context, extract with `errors.As`
 - Customizable via Go templates and `onCreate` hooks
 
@@ -19,7 +19,7 @@ Go code generator for rich error types. Stdlib only, zero dependencies.
   - [`@Error("format string")` - error message](#errorformat-string---error-message)
   - [`@Code(...)` - HTTP status code](#code---http-status-code)
   - [Error-typed fields and `Unwrap`](#error-typed-fields-and-unwrap)
-  - [Structured logging (`slog.LogValuer`)](#structured-logging-sloglogvaluer)
+  - [Structured logging](#structured-logging)
   - [JSON serialization](#json-serialization)
   - [Generated type naming](#generated-type-naming)
   - [Hook file (`_gen_hook.go`)](#hook-file-_gen_hookgo)
@@ -102,7 +102,8 @@ func (e *InternalError) StatusCode() int {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *InternalError) LogValue() slog.Value {
 	return slog.GroupValue(
-		slog.Any("reason", e.Reason),
+		slog.String("error", e.Error()),
+		slog.String("reason", e.Reason),
 	)
 }
 
@@ -170,6 +171,7 @@ func (e *InternalError) onCreate() {
 -m value     manual import mapping: pkg=import/path (repeatable, for ambiguous packages)
 -no-hooks      skip hook file generation
 -stack-trace   capture call stack in constructors via runtime.Callers
+-zap           also generate a zapcore.ObjectMarshaler implementation (adds go.uber.org/zap dependency)
 ```
 
 ### Cross-package generation
@@ -295,21 +297,69 @@ func (e *WrapChainError) Unwrap() []error {
 
 Without error-typed fields, `Unwrap()` returns just the sentinel as a single `error`.
 
-### Structured logging (`slog.LogValuer`)
+### Structured logging
 
-Every error type with fields implements `slog.LogValuer` (stdlib since Go 1.21). This means structured loggers automatically extract typed fields instead of just calling `Error()`:
+Every error type with fields implements one or more structured-logger interfaces, so loggers extract typed fields instead of just calling `Error()`. Each implementation includes the formatted error message under the `"error"` key plus every declared field — a single log entry is self-contained.
+
+| Logger | Package                                                | Interface                 | When generated   | Required deps          |
+|--------|--------------------------------------------------------|---------------------------|------------------|------------------------|
+| slog   | [`log/slog`](https://pkg.go.dev/log/slog)              | `slog.LogValuer`          | always (stdlib)  | none (stdlib)          |
+| zap    | [`go.uber.org/zap`](https://github.com/uber-go/zap)    | `zapcore.ObjectMarshaler` | with `-zap` flag | `go.uber.org/zap`      |
+
+#### go
 
 ```go
-slog.Error("request failed", "err", api.NewHTTPError(404, "user not found"))
+// @EntityType string
+// @ID int
+// Code(404)
+// @Error("'%EntityType' with ID %ID not found")
+var ErrEntityNotFound = errors.New("entity not found")
+
+...
+
+// some conditions trigger the error
+return NewEntityNotFoundError("user", 123)
+
 ```
 
-Output:
+#### slog
 
-```json
-{"level":"ERROR","msg":"request failed","err":{"statusCode":404,"message":"user not found"}}
+```go
+slog.Error("request failed", "error", err)
+```
+
+```
+2026/05/02 17:03:12 ERROR request failed error.error="'user' with ID 123 not found" error.entityType=user error.iD=123
 ```
 
 Works with any `slog`-compatible logger (zerolog, zap via bridge, etc).
+
+#### zap
+
+Add `-zap` to the `go:generate` directive:
+
+```go
+//go:generate go run github.com/myjupyter/errgen -zap
+```
+
+Then log with `zap.Object` (or `zap.Inline` to flatten the fields):
+
+```go
+log.Error("request failed", zap.Object("error", err))
+```
+
+```json
+{
+  "level": "error",
+  "ts": 1777723001.7236412,
+  "msg": "request failed",
+  "error": {
+    "error": "user with ID 123 not found",
+    "entityType": "user",
+    "iD": 123
+  }
+}
+```
 
 ### JSON serialization
 
