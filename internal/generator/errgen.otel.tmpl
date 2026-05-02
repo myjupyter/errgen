@@ -1,0 +1,25 @@
+{{define "otelAttributes" -}}
+// Attributes returns the error fields as [attribute.KeyValue] for use with
+// OpenTelemetry spans, e.g. span.RecordError(e, trace.WithAttributes(e.Attributes()...)).
+func (e *{{.TypeName}}) Attributes() []attribute.KeyValue {
+	attrs := []attribute.KeyValue{
+{{- range .Fields}}
+{{- if ne .Type "error"}}
+{{- if eq (otelAttribute .Type) "Sprintf"}}
+		attribute.String("{{.NameLower}}", fmt.Sprintf("%v", e.{{.Name}})),
+{{- else}}
+		attribute.{{otelAttribute .Type}}("{{.NameLower}}", {{otelValueOf .Type .Name}}),
+{{- end}}
+{{- end}}
+{{- end}}
+	}
+{{- range .Fields}}
+{{- if eq .Type "error"}}
+	if e.{{.Name}} != nil {
+		attrs = append(attrs, attribute.String("{{.NameLower}}", e.{{.Name}}.Error()))
+	}
+{{- end}}
+{{- end}}
+	return attrs
+}
+{{- end}}

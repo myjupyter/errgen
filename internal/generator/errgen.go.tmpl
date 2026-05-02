@@ -2,7 +2,7 @@
 
 package {{.PackageName}}
 
-{{- if or .NeedsFmt .NeedsSlog .NeedsJSON .NeedsErrors .NeedsHTTPStatus .StackTrace .Zap.NeedsZapcore .Zap.NeedsZap .Zerolog.NeedsZerolog (gt (len .Imports) 0)}}
+{{- if or .NeedsFmt .NeedsSlog .NeedsJSON .NeedsErrors .NeedsHTTPStatus .StackTrace .Zap.NeedsZapcore .Zap.NeedsZap .Zerolog.NeedsZerolog .OTel.NeedsAttribute (gt (len .Imports) 0)}}
 
 import (
 {{- if .NeedsJSON}}
@@ -36,6 +36,10 @@ import (
 {{- if .Zerolog.NeedsZerolog}}
 
 	"github.com/rs/zerolog"
+{{- end}}
+{{- if .OTel.NeedsAttribute}}
+
+	"go.opentelemetry.io/otel/attribute"
 {{- end}}
 )
 {{- end}}
@@ -152,6 +156,10 @@ func (e *{{.TypeName}}) UnmarshalJSON(data []byte) error {
 {{- if $.Zerolog.Enabled}}
 
 {{template "zerologMarshalZerologObject" .}}
+{{- end}}
+{{- if $.OTel.Enabled}}
+
+{{template "otelAttributes" .}}
 {{- end}}
 {{- end}}
 

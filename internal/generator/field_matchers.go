@@ -155,3 +155,72 @@ func zerologValueExpr(goType, fieldName string) string {
 	}
 	return base
 }
+
+// otelAttributeFunc returns the [go.opentelemetry.io/otel/attribute] constructor
+// name for a given Go field type (e.g. "Int", "String", "BoolSlice"). Returns
+// "Sprintf" for types OTel can't represent natively — the template uses that
+// to fall back to attribute.String(key, fmt.Sprintf("%v", val)).
+//
+// time.Time is encoded as an RFC3339Nano string and time.Duration as Int64
+// nanoseconds; otelValueExpr supplies the corresponding value-side expression.
+//
+// uint64 and uintptr deliberately route through the Sprintf fallback rather
+// than Int64: values above math.MaxInt64 would silently overflow into negative
+// int64s, so a lossless string representation is preferred.
+func otelAttributeFunc(goType string) string { //nolint:funlen,gocyclo // straight-line dispatch
+	switch goType {
+	case "bool":
+		return "Bool"
+	case "string":
+		return "String"
+	case "int":
+		return "Int"
+	case "int8", "int16", "int32":
+		return "Int"
+	case "int64":
+		return "Int64"
+	case "uint", "uint8", "uint16", "uint32":
+		return "Int64"
+	case "float32", "float64":
+		return "Float64"
+	case "time.Time":
+		return "String"
+	case "time.Duration":
+		return "Int64"
+	case "[]string":
+		return "StringSlice"
+	case "[]int":
+		return "IntSlice"
+	case "[]int64":
+		return "Int64Slice"
+	case "[]bool":
+		return "BoolSlice"
+	case "[]float64":
+		return "Float64Slice"
+	default:
+		return "Sprintf"
+	}
+}
+
+// otelValueExpr returns the value expression for an OTel attribute constructor.
+// Many Go types need explicit conversion: time.Time formats to RFC3339Nano,
+// time.Duration becomes int64 nanoseconds, narrow uints widen to int64.
+// uint64/uintptr fall through to the Sprintf branch in the template (see
+// otelAttributeFunc) and don't need a special case here.
+func otelValueExpr(goType, fieldName string) string {
+	base := "e." + fieldName
+	switch goType {
+	case "int8", "int16", "int32":
+		return "int(" + base + ")"
+	case "uint", "uint8", "uint16", "uint32":
+		return "int64(" + base + ")"
+	case "float32":
+		return "float64(" + base + ")"
+	case "time.Time":
+		return base + ".Format(time.RFC3339Nano)"
+	case "time.Duration":
+		return "int64(" + base + ")"
+	default:
+		return base
+	}
+}
