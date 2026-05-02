@@ -23,6 +23,8 @@ var (
 	defaultErrgenZerologTemplate string
 	//go:embed errgen.otel.tmpl
 	defaultErrgenOTelTemplate string
+	//go:embed errgen.logrus.tmpl
+	defaultErrgenLogrusTemplate string
 )
 
 type Generator struct {
@@ -57,6 +59,7 @@ func New(templateText string) (*Generator, error) {
 		"errgen.zap":     defaultErrgenZapTemplate,
 		"errgen.zerolog": defaultErrgenZerologTemplate,
 		"errgen.otel":    defaultErrgenOTelTemplate,
+		"errgen.logrus":  defaultErrgenLogrusTemplate,
 	}
 	for name, text := range extraTemplates {
 		if _, err := temp.Parse(text); err != nil {
@@ -78,6 +81,7 @@ type GenerateInput struct { //nolint:govet // readability over alignment
 	Zap         bool // emit zapcore.ObjectMarshaler implementation
 	Zerolog     bool // emit zerolog.LogObjectMarshaler implementation
 	OTel        bool // emit Attributes() []attribute.KeyValue method
+	Logrus      bool // emit LogrusFields() logrus.Fields method
 }
 
 // Generate renders Go source for the given error definitions
@@ -110,6 +114,7 @@ func (g *Generator) Generate(in GenerateInput) ([]byte, error) {
 		Zap:         flags.zap,
 		Zerolog:     flags.zerolog,
 		OTel:        flags.otel,
+		Logrus:      flags.logrus,
 	}
 
 	var buf bytes.Buffer
@@ -138,6 +143,7 @@ type importFlags struct { //nolint:govet // readability over alignment
 	zap         zapTemplateData
 	zerolog     zerologTemplateData
 	otel        otelTemplateData
+	logrus      logrusTemplateData
 }
 
 // aggregateImportFlags walks every error def once and returns the union of
@@ -149,6 +155,7 @@ func aggregateImportFlags(defs []errDefData, in GenerateInput) importFlags { //n
 		zap:     zapTemplateData{Enabled: in.Zap},
 		zerolog: zerologTemplateData{Enabled: in.Zerolog},
 		otel:    otelTemplateData{Enabled: in.OTel},
+		logrus:  logrusTemplateData{Enabled: in.Logrus},
 	}
 	for _, d := range defs {
 		if d.ErrorFormat != nil {
@@ -165,6 +172,9 @@ func aggregateImportFlags(defs []errDefData, in GenerateInput) importFlags { //n
 			}
 			if in.OTel {
 				flags.otel.NeedsAttribute = true
+			}
+			if in.Logrus {
+				flags.logrus.NeedsLogrus = true
 			}
 		}
 		if len(d.WrappedFields) > 0 {

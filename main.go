@@ -51,6 +51,7 @@ type config struct { //nolint:govet // readability over alignment
 	zap            bool
 	zerolog        bool
 	otel           bool
+	logrus         bool
 	manualImports  importMapFlag
 }
 
@@ -76,6 +77,7 @@ func parseConfig() (*config, bool) {
 	zap := flag.Bool("zap", false, "generate zapcore.ObjectMarshaler implementation for use with go.uber.org/zap")
 	zerolog := flag.Bool("zerolog", false, "generate zerolog.LogObjectMarshaler implementation for use with github.com/rs/zerolog")
 	otel := flag.Bool("otel", false, "generate Attributes() []attribute.KeyValue method for use with go.opentelemetry.io/otel")
+	logrus := flag.Bool("logrus", false, "generate LogrusFields() logrus.Fields method for use with github.com/sirupsen/logrus")
 
 	var manualImports importMapFlag
 	flag.Var(&manualImports, "m", "manual import mapping: pkg=import/path (repeatable, for ambiguous packages)")
@@ -107,6 +109,7 @@ func parseConfig() (*config, bool) {
 		zap:           *zap,
 		zerolog:       *zerolog,
 		otel:          *otel,
+		logrus:        *logrus,
 		manualImports: manualImports,
 	}
 
@@ -185,6 +188,7 @@ func run(cfg *config) error {
 		Zap:         cfg.zap,
 		Zerolog:     cfg.zerolog,
 		OTel:        cfg.otel,
+		Logrus:      cfg.logrus,
 	}
 	if err := generateFile(templateText, cfg.outputPath, genInput, cfg.dryRun); err != nil {
 		return err

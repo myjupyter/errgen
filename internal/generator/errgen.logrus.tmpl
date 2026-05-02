@@ -1,0 +1,22 @@
+{{define "logrusFields" -}}
+// LogrusFields returns the error fields as [logrus.Fields] for use with logrus,
+// e.g. log.WithFields(e.LogrusFields()).Error("...")
+func (e *{{.TypeName}}) LogrusFields() logrus.Fields {
+	fields := logrus.Fields{
+		"error": e.Error(),
+{{- range .Fields}}
+{{- if ne .Type "error"}}
+		"{{.NameLower}}": e.{{.Name}},
+{{- end}}
+{{- end}}
+	}
+{{- range .Fields}}
+{{- if eq .Type "error"}}
+	if e.{{.Name}} != nil {
+		fields["{{.NameLower}}"] = e.{{.Name}}.Error()
+	}
+{{- end}}
+{{- end}}
+	return fields
+}
+{{- end}}

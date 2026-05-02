@@ -14,6 +14,7 @@ type templateData struct {
 	Zap         zapTemplateData
 	Zerolog     zerologTemplateData
 	OTel        otelTemplateData
+	Logrus      logrusTemplateData
 }
 
 // zapTemplateData groups data used by the zap-related template sections
@@ -33,6 +34,12 @@ type zerologTemplateData struct {
 type otelTemplateData struct {
 	Enabled        bool // -otel flag
 	NeedsAttribute bool // emit "go.opentelemetry.io/otel/attribute" import
+}
+
+// logrusTemplateData groups data used by the logrus-related template sections
+type logrusTemplateData struct {
+	Enabled     bool // -logrus flag
+	NeedsLogrus bool // emit "github.com/sirupsen/logrus" import
 }
 
 // defData is per-error template data

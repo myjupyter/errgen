@@ -2,8 +2,10 @@ package main
 
 import (
 	"errors"
-	"log/slog"
+	"os"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 func fooErr() error {
@@ -27,14 +29,18 @@ func fooErr() error {
 }
 
 func main() {
-	slog.Info("test start")
-	defer slog.Info("test end")
+	log := logrus.New()
+	log.SetOutput(os.Stderr)
+	log.SetFormatter(&logrus.JSONFormatter{})
+
+	log.Info("test start")
+	defer log.Info("test end")
 
 	err := fooErr()
 	var e *InternalError
 	if ok := errors.As(err, &e); ok {
-		slog.Error("error message", "error", e)
+		log.WithFields(e.LogrusFields()).Error("error message")
 	}
-	err = NewEntityNotFoundError("user", 123)
-	slog.Error("request failed", "error", err)
+
+	log.WithFields(NewEntityNotFoundError("user", 123).LogrusFields()).Error("request failed")
 }
