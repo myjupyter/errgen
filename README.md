@@ -3,7 +3,7 @@
 Go code generator for rich error types. Stdlib only, zero dependencies.
 
 - Annotate `errors.New` sentinels with fields and a format string
-- Generates struct, constructor, and full error/json/[logging](#structured-logging) interfaces
+- Generates struct, constructor, and full error/[json](#json-serialization)/[logging](#structured-logging) interfaces
 - Errors as data containers - carry context, extract with `errors.As`
 - Customizable via Go templates and `onCreate` hooks
 
@@ -20,6 +20,7 @@ Go code generator for rich error types. Stdlib only, zero dependencies.
   - [`@Code(...)` - HTTP status code](#code---http-status-code)
   - [Error-typed fields and `Unwrap`](#error-typed-fields-and-unwrap)
   - [Structured logging](#structured-logging)
+  - [OpenTelemetry](#opentelemetry)
   - [JSON serialization](#json-serialization)
   - [Generated type naming](#generated-type-naming)
   - [Hook file (`_gen_hook.go`)](#hook-file-_gen_hookgo)
@@ -173,6 +174,7 @@ func (e *InternalError) onCreate() {
 -stack-trace   capture call stack in constructors via runtime.Callers
 -zap           also generate a zapcore.ObjectMarshaler implementation (adds go.uber.org/zap dependency)
 -zerolog       also generate a zerolog.LogObjectMarshaler implementation (adds github.com/rs/zerolog dependency)
+-otel          also generate an Attributes() []attribute.KeyValue method (adds go.opentelemetry.io/otel dependency)
 ```
 
 ### Cross-package generation
@@ -388,6 +390,26 @@ log.Error().Object("error", err).Msg("request failed")
     "iD": 123
   }
 }
+```
+
+### OpenTelemetry
+
+Use `-otel` to generate an `Attributes() []attribute.KeyValue` method per error type:
+
+```go
+//go:generate go run github.com/myjupyter/errgen -otel
+```
+
+Then attach the attributes to a span:
+
+```go
+import "go.opentelemetry.io/otel/trace"
+
+err := NewEntityNotFoundError("user", 123)
+
+span.RecordError(err, trace.WithAttributes(err.Attributes()...))
+// or
+span.SetAttributes(err.Attributes()...)
 ```
 
 ### JSON serialization

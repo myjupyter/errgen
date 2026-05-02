@@ -14,6 +14,7 @@ type templateData struct {
 	NoHooks         bool
 	Zap             zapTemplateData
 	Zerolog         zerologTemplateData
+	OTel            otelTemplateData
 }
 
 // zapTemplateData groups data used by the zap-related template sections
@@ -27,6 +28,12 @@ type zapTemplateData struct {
 type zerologTemplateData struct {
 	Enabled      bool // -zerolog flag
 	NeedsZerolog bool // emit "github.com/rs/zerolog" import
+}
+
+// otelTemplateData groups data used by the OpenTelemetry-related template sections
+type otelTemplateData struct {
+	Enabled        bool // -otel flag
+	NeedsAttribute bool // emit "go.opentelemetry.io/otel/attribute" import
 }
 
 // defData is per-error template data

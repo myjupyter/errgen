@@ -21,6 +21,8 @@ var (
 	defaultErrgenZapTemplate string
 	//go:embed errgen.zerolog.tmpl
 	defaultErrgenZerologTemplate string
+	//go:embed errgen.otel.tmpl
+	defaultErrgenOTelTemplate string
 )
 
 type Generator struct {
@@ -37,6 +39,8 @@ var templateFuncs = template.FuncMap{
 	"slogValueOf":    slogValueExpr,
 	"zerologMethod":  zerologEventMethod,
 	"zerologValueOf": zerologValueExpr,
+	"otelAttribute":  otelAttributeFunc,
+	"otelValueOf":    otelValueExpr,
 }
 
 func New(templateText string) (*Generator, error) {
@@ -48,16 +52,18 @@ func New(templateText string) (*Generator, error) {
 	if err != nil {
 		return nil, model.NewGenInvalidTemplateError(templateName, err)
 	}
-	// Parse the zap template into the same tree so the main template can
-	// invoke it via {{template "zapMarshalLogObject" .}} when -zap is enabled.
-	if _, err := temp.Parse(defaultErrgenZapTemplate); err != nil {
-		return nil, model.NewGenInvalidTemplateError("errgen.zap", err)
+
+	extraTemplates := map[string]string{
+		"errgen.zap":     defaultErrgenZapTemplate,
+		"errgen.zerolog": defaultErrgenZerologTemplate,
+		"errgen.otel":    defaultErrgenOTelTemplate,
 	}
-	// Same for zerolog: parsed unconditionally so {{template "zerologMarshalZerologObject" .}}
-	// is always available, and dispatched via {{if $.Zerolog.Enabled}} in the main template.
-	if _, err := temp.Parse(defaultErrgenZerologTemplate); err != nil {
-		return nil, model.NewGenInvalidTemplateError("errgen.zerolog", err)
+	for name, text := range extraTemplates {
+		if _, err := temp.Parse(text); err != nil {
+			return nil, model.NewGenInvalidTemplateError(name, err)
+		}
 	}
+
 	return &Generator{temp: temp}, nil
 }
 
@@ -71,6 +77,7 @@ type GenerateInput struct { //nolint:govet // readability over alignment
 	StackTrace  bool
 	Zap         bool // emit zapcore.ObjectMarshaler implementation
 	Zerolog     bool // emit zerolog.LogObjectMarshaler implementation
+	OTel        bool // emit Attributes() []attribute.KeyValue method
 }
 
 // Generate renders Go source for the given error definitions
@@ -103,6 +110,7 @@ func (g *Generator) Generate(in GenerateInput) ([]byte, error) {
 		NoHooks:         in.NoHooks,
 		Zap:             flags.zap,
 		Zerolog:         flags.zerolog,
+		OTel:            flags.otel,
 	}
 
 	var buf bytes.Buffer
@@ -131,6 +139,7 @@ type importFlags struct { //nolint:govet // readability over alignment
 	needsHTTPStatus bool
 	zap             zapTemplateData
 	zerolog         zerologTemplateData
+	otel            otelTemplateData
 }
 
 // aggregateImportFlags walks every error def once and returns the union of
@@ -141,6 +150,7 @@ func aggregateImportFlags(defs []errDefData, in GenerateInput) importFlags {
 	flags := importFlags{
 		zap:     zapTemplateData{Enabled: in.Zap},
 		zerolog: zerologTemplateData{Enabled: in.Zerolog},
+		otel:    otelTemplateData{Enabled: in.OTel},
 	}
 	for _, d := range defs {
 		if d.ErrorFormat != nil {
@@ -154,6 +164,9 @@ func aggregateImportFlags(defs []errDefData, in GenerateInput) importFlags {
 			}
 			if in.Zerolog {
 				flags.zerolog.NeedsZerolog = true
+			}
+			if in.OTel {
+				flags.otel.NeedsAttribute = true
 			}
 		}
 		if len(d.WrappedFields) > 0 {
@@ -169,6 +182,10 @@ func aggregateImportFlags(defs []errDefData, in GenerateInput) importFlags {
 			}
 			if in.Zap && f.Type != "error" && zapEncoderMethod(f.Type) == "Any" { //nolint:goconst // sentinel returned by zapEncoderMethod
 				flags.zap.NeedsZap = true
+			}
+			if in.OTel && f.Type != "error" && otelAttributeFunc(f.Type) == "Sprintf" {
+				// Sprintf fallback writes attribute.String(k, fmt.Sprintf("%v", v))
+				flags.needsFmt = true
 			}
 		}
 	}

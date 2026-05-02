@@ -50,6 +50,7 @@ type config struct { //nolint:govet // readability over alignment
 	stackTrace     bool
 	zap            bool
 	zerolog        bool
+	otel           bool
 	manualImports  importMapFlag
 }
 
@@ -74,6 +75,7 @@ func parseConfig() (*config, bool) {
 	stackTrace := flag.Bool("stack-trace", false, "capture stack trace in constructors via runtime.Callers")
 	zap := flag.Bool("zap", false, "generate zapcore.ObjectMarshaler implementation for use with go.uber.org/zap")
 	zerolog := flag.Bool("zerolog", false, "generate zerolog.LogObjectMarshaler implementation for use with github.com/rs/zerolog")
+	otel := flag.Bool("otel", false, "generate Attributes() []attribute.KeyValue method for use with go.opentelemetry.io/otel")
 
 	var manualImports importMapFlag
 	flag.Var(&manualImports, "m", "manual import mapping: pkg=import/path (repeatable, for ambiguous packages)")
@@ -104,6 +106,7 @@ func parseConfig() (*config, bool) {
 		stackTrace:    *stackTrace,
 		zap:           *zap,
 		zerolog:       *zerolog,
+		otel:          *otel,
 		manualImports: manualImports,
 	}
 
@@ -181,6 +184,7 @@ func run(cfg *config) error {
 		StackTrace:  cfg.stackTrace,
 		Zap:         cfg.zap,
 		Zerolog:     cfg.zerolog,
+		OTel:        cfg.otel,
 	}
 	if err := generateFile(templateText, cfg.outputPath, genInput, cfg.dryRun); err != nil {
 		return err
