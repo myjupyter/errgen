@@ -138,16 +138,14 @@ func (e *InternalError) UnmarshalJSON(data []byte) error {
 
 // Attributes returns the error fields as [attribute.KeyValue] for use with
 // OpenTelemetry spans, e.g. span.RecordError(e, trace.WithAttributes(e.Attributes()...)).
-// The error message is intentionally omitted — span.RecordError already captures
-// it as the exception.message attribute.
 func (e *InternalError) Attributes() []attribute.KeyValue {
 	attrs := []attribute.KeyValue{
 		attribute.String("stringField", e.StringField),
 		attribute.Int64("int64Field", e.Int64Field),
 		attribute.Int("intField", e.IntField),
-		attribute.Int64("uint64Field", int64(e.Uint64Field)),
+		attribute.String("uint64Field", fmt.Sprintf("%v", e.Uint64Field)),
 		attribute.Int64("uintField", int64(e.UintField)),
-		attribute.Int64("uintptrField", int64(e.UintptrField)),
+		attribute.String("uintptrField", fmt.Sprintf("%v", e.UintptrField)),
 		attribute.Float64("float64Field", e.Float64Field),
 		attribute.Bool("boolField", e.BoolField),
 		attribute.String("timeField", e.TimeField.Format(time.RFC3339Nano)),
@@ -244,8 +242,6 @@ func (e *EntityNotFoundError) UnmarshalJSON(data []byte) error {
 
 // Attributes returns the error fields as [attribute.KeyValue] for use with
 // OpenTelemetry spans, e.g. span.RecordError(e, trace.WithAttributes(e.Attributes()...)).
-// The error message is intentionally omitted — span.RecordError already captures
-// it as the exception.message attribute.
 func (e *EntityNotFoundError) Attributes() []attribute.KeyValue {
 	attrs := []attribute.KeyValue{
 		attribute.String("entityType", e.EntityType),

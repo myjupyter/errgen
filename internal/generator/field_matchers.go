@@ -163,6 +163,10 @@ func zerologValueExpr(goType, fieldName string) string {
 //
 // time.Time is encoded as an RFC3339Nano string and time.Duration as Int64
 // nanoseconds; otelValueExpr supplies the corresponding value-side expression.
+//
+// uint64 and uintptr deliberately route through the Sprintf fallback rather
+// than Int64: values above math.MaxInt64 would silently overflow into negative
+// int64s, so a lossless string representation is preferred.
 func otelAttributeFunc(goType string) string { //nolint:funlen,gocyclo // straight-line dispatch
 	switch goType {
 	case "bool":
@@ -175,7 +179,7 @@ func otelAttributeFunc(goType string) string { //nolint:funlen,gocyclo // straig
 		return "Int"
 	case "int64":
 		return "Int64"
-	case "uint", "uint8", "uint16", "uint32", "uint64", "uintptr":
+	case "uint", "uint8", "uint16", "uint32":
 		return "Int64"
 	case "float32", "float64":
 		return "Float64"
@@ -200,13 +204,15 @@ func otelAttributeFunc(goType string) string { //nolint:funlen,gocyclo // straig
 
 // otelValueExpr returns the value expression for an OTel attribute constructor.
 // Many Go types need explicit conversion: time.Time formats to RFC3339Nano,
-// time.Duration becomes int64 nanoseconds, narrow ints/uints widen to int64.
+// time.Duration becomes int64 nanoseconds, narrow uints widen to int64.
+// uint64/uintptr fall through to the Sprintf branch in the template (see
+// otelAttributeFunc) and don't need a special case here.
 func otelValueExpr(goType, fieldName string) string {
 	base := "e." + fieldName
 	switch goType {
 	case "int8", "int16", "int32":
 		return "int(" + base + ")"
-	case "uint", "uint8", "uint16", "uint32", "uint64", "uintptr":
+	case "uint", "uint8", "uint16", "uint32":
 		return "int64(" + base + ")"
 	case "float32":
 		return "float64(" + base + ")"
