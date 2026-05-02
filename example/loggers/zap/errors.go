@@ -2,12 +2,14 @@ package main
 
 import "errors"
 
-//go:generate ../../../bin/errgen -zap -no-hooks
+//go:generate go run github.com/myjupyter/errgen -zap -no-hooks
 
 // @StringField string
 // @Int64Field int64
 // @IntField int
 // @Uint64Field uint64
+// @UintField uint
+// @UintptrField uintptr
 // @Float64Field float64
 // @BoolField bool
 // @TimeField time.Time

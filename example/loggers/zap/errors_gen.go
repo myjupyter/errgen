@@ -18,6 +18,8 @@ type InternalError struct {
 	Int64Field       int64
 	IntField         int
 	Uint64Field      uint64
+	UintField        uint
+	UintptrField     uintptr
 	Float64Field     float64
 	BoolField        bool
 	TimeField        time.Time
@@ -50,6 +52,8 @@ func (e *InternalError) LogValue() slog.Value {
 		slog.Int64("int64Field", e.Int64Field),
 		slog.Int("intField", e.IntField),
 		slog.Uint64("uint64Field", e.Uint64Field),
+		slog.Uint64("uintField", uint64(e.UintField)),
+		slog.Uint64("uintptrField", uint64(e.UintptrField)),
 		slog.Float64("float64Field", e.Float64Field),
 		slog.Bool("boolField", e.BoolField),
 		slog.Time("timeField", e.TimeField),
@@ -68,6 +72,8 @@ func (e *InternalError) MarshalJSON() ([]byte, error) {
 		Int64Field       int64             `json:"int64Field"`
 		IntField         int               `json:"intField"`
 		Uint64Field      uint64            `json:"uint64Field"`
+		UintField        uint              `json:"uintField"`
+		UintptrField     uintptr           `json:"uintptrField"`
 		Float64Field     float64           `json:"float64Field"`
 		BoolField        bool              `json:"boolField"`
 		TimeField        time.Time         `json:"timeField"`
@@ -81,6 +87,8 @@ func (e *InternalError) MarshalJSON() ([]byte, error) {
 	d.Int64Field = e.Int64Field
 	d.IntField = e.IntField
 	d.Uint64Field = e.Uint64Field
+	d.UintField = e.UintField
+	d.UintptrField = e.UintptrField
 	d.Float64Field = e.Float64Field
 	d.BoolField = e.BoolField
 	d.TimeField = e.TimeField
@@ -98,6 +106,8 @@ func (e *InternalError) UnmarshalJSON(data []byte) error {
 		Int64Field       int64             `json:"int64Field"`
 		IntField         int               `json:"intField"`
 		Uint64Field      uint64            `json:"uint64Field"`
+		UintField        uint              `json:"uintField"`
+		UintptrField     uintptr           `json:"uintptrField"`
 		Float64Field     float64           `json:"float64Field"`
 		BoolField        bool              `json:"boolField"`
 		TimeField        time.Time         `json:"timeField"`
@@ -114,6 +124,8 @@ func (e *InternalError) UnmarshalJSON(data []byte) error {
 	e.Int64Field = d.Int64Field
 	e.IntField = d.IntField
 	e.Uint64Field = d.Uint64Field
+	e.UintField = d.UintField
+	e.UintptrField = d.UintptrField
 	e.Float64Field = d.Float64Field
 	e.BoolField = d.BoolField
 	e.TimeField = d.TimeField
@@ -131,6 +143,8 @@ func (e *InternalError) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	enc.AddInt64("int64Field", e.Int64Field)
 	enc.AddInt("intField", e.IntField)
 	enc.AddUint64("uint64Field", e.Uint64Field)
+	enc.AddUint("uintField", e.UintField)
+	enc.AddUintptr("uintptrField", e.UintptrField)
 	enc.AddFloat64("float64Field", e.Float64Field)
 	enc.AddBool("boolField", e.BoolField)
 	enc.AddTime("timeField", e.TimeField)
@@ -142,12 +156,14 @@ func (e *InternalError) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 }
 
 // NewInternalError creates a new InternalError
-func NewInternalError(stringField string, int64Field int64, intField int, uint64Field uint64, float64Field float64, boolField bool, timeField time.Time, durationField time.Duration, intSliceField []int, objectSliceField []Object, mapType map[string]string) *InternalError {
+func NewInternalError(stringField string, int64Field int64, intField int, uint64Field uint64, uintField uint, uintptrField uintptr, float64Field float64, boolField bool, timeField time.Time, durationField time.Duration, intSliceField []int, objectSliceField []Object, mapType map[string]string) *InternalError {
 	e := &InternalError{
 		StringField:      stringField,
 		Int64Field:       int64Field,
 		IntField:         intField,
 		Uint64Field:      uint64Field,
+		UintField:        uintField,
+		UintptrField:     uintptrField,
 		Float64Field:     float64Field,
 		BoolField:        boolField,
 		TimeField:        timeField,

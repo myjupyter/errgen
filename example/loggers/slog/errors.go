@@ -2,7 +2,7 @@ package main
 
 import "errors"
 
-//go:generate ../../../bin/errgen -no-hooks
+//go:generate go run github.com/myjupyter/errgen -no-hooks
 
 // @StringField string
 // @Int64Field int64

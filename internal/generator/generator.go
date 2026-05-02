@@ -44,7 +44,7 @@ func New(templateText string) (*Generator, error) {
 		return nil, model.NewGenInvalidTemplateError(templateName, err)
 	}
 	// Parse the zap template into the same tree so the main template can
-	// invoke it via {{template "marshalLogObject" .}} when -zap is enabled.
+	// invoke it via {{template "zapMarshalLogObject" .}} when -zap is enabled.
 	if _, err := temp.Parse(defaultErrgenZapTemplate); err != nil {
 		return nil, model.NewGenInvalidTemplateError("errgen.zap", err)
 	}
@@ -65,7 +65,7 @@ type GenerateInput struct { //nolint:govet // readability over alignment
 // zapEncoderMethod returns the zapcore.ObjectEncoder method name for a given
 // Go field type. Returns "Any" for types without a direct encoder method -
 // the template uses that to fall back to zap.Any(key, val).AddTo(enc)
-func zapEncoderMethod(goType string) string { //nolint:funlen,gocyclo // readability
+func zapEncoderMethod(goType string) string { //nolint:funlen,gocyclo,goconst // case clauses are Go type names, not magic strings
 	switch goType {
 	case "bool":
 		return "AddBool"
@@ -73,27 +73,27 @@ func zapEncoderMethod(goType string) string { //nolint:funlen,gocyclo // readabi
 		return "AddString"
 	case "int":
 		return "AddInt"
-	case "int8": //nolint:goconst
+	case "int8":
 		return "AddInt8"
-	case "int16": //nolint:goconst
+	case "int16":
 		return "AddInt16"
-	case "int32": //nolint:goconst
+	case "int32":
 		return "AddInt32"
-	case "int64": //nolint:goconst
+	case "int64":
 		return "AddInt64"
-	case "uint": //nolint:goconst
+	case "uint":
 		return "AddUint"
-	case "uint8": //nolint:goconst
+	case "uint8":
 		return "AddUint8"
-	case "uint16": //nolint:goconst
+	case "uint16":
 		return "AddUint16"
-	case "uint32": //nolint:goconst
+	case "uint32":
 		return "AddUint32"
-	case "uint64": //nolint:goconst
+	case "uint64":
 		return "AddUint64"
-	case "uintptr": //nolint:goconst
+	case "uintptr":
 		return "AddUintptr"
-	case "float32": //nolint:goconst
+	case "float32":
 		return "AddFloat32"
 	case "float64":
 		return "AddFloat64"
@@ -108,14 +108,14 @@ func zapEncoderMethod(goType string) string { //nolint:funlen,gocyclo // readabi
 	case "[]byte":
 		return "AddBinary"
 	default:
-		return "Any" //nolint:goconst
+		return "Any"
 	}
 }
 
 // slogConstructorMethod returns the slog package constructor name for a given
 // Go field type (e.g. "Int", "String", "Time"). Returns "Any" for types without
 // a direct constructor — slog.Any handles them via reflection
-func slogConstructorMethod(goType string) string {
+func slogConstructorMethod(goType string) string { //nolint:goconst // case clauses are Go type names, not magic strings
 	switch goType {
 	case "bool":
 		return "Bool"
@@ -123,11 +123,11 @@ func slogConstructorMethod(goType string) string {
 		return "String"
 	case "int":
 		return "Int"
-	case "int8", "int16", "int32", "int64": //nolint:goconst
+	case "int8", "int16", "int32", "int64":
 		return "Int64"
-	case "uint", "uint8", "uint16", "uint32", "uint64", "uintptr": //nolint:goconst
+	case "uint", "uint8", "uint16", "uint32", "uint64", "uintptr":
 		return "Uint64"
-	case "float32", "float64": //nolint:goconst
+	case "float32", "float64":
 		return "Float64"
 	case "time.Time":
 		return "Time"

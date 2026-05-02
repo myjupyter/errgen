@@ -2,10 +2,11 @@ module github.com/myjupyter/errgen/example/loggers/zap
 
 go 1.22
 
-require go.uber.org/zap v1.27.0
-
 require (
-	go.uber.org/multierr v1.10.0 // indirect
+	github.com/myjupyter/errgen v0.1.0
+	go.uber.org/zap v1.27.0
 )
+
+require go.uber.org/multierr v1.10.0 // indirect
 
 replace github.com/myjupyter/errgen => ../../..
