@@ -14,15 +14,16 @@ Go code generator for rich error types. Stdlib only, zero dependencies.
   - [Flags](#flags)
   - [Cross-package generation](#cross-package-generation)
   - [Ambiguous imports (`-m`)](#ambiguous-imports--m)
-- [Annotation DSL](#annotation-dsl)
+- [Annotations](#annotations)
   - [`@Name Type` - field declaration](#name-type---field-declaration)
   - [`@Error("format string")` - error message](#errorformat-string---error-message)
   - [`@Code(...)` - HTTP status code](#code---http-status-code)
+- [Features](#features)
+  - [Generated type naming](#generated-type-naming)
   - [Error-typed fields and `Unwrap`](#error-typed-fields-and-unwrap)
+  - [JSON serialization](#json-serialization)
   - [Structured logging](#structured-logging)
   - [OpenTelemetry](#opentelemetry)
-  - [JSON serialization](#json-serialization)
-  - [Generated type naming](#generated-type-naming)
   - [Hook file (`_gen_hook.go`)](#hook-file-_gen_hookgo)
   - [Stack traces (`-stack-trace`)](#stack-traces--stack-trace)
 - [Example](#example)
@@ -200,7 +201,7 @@ Multiple `-m` flags can be combined:
 //go:generate go run github.com/myjupyter/errgen -m netpkg=github.com/myapp/netpkg/v1 -m auth=github.com/myapp/auth/v2
 ```
 
-## Annotation DSL
+## Annotations
 
 Annotations are placed in comments directly above a `var` declaration assigned via `errors.New()` or `fmt.Errorf()`.
 
@@ -280,6 +281,20 @@ if errors.As(err, &coder) {
 }
 ```
 
+## Features
+
+### Generated type naming
+
+The `Err` prefix is not required but recommended — it follows Go convention and produces cleaner type names
+
+The type name is derived from the variable name by stripping the `Err` prefix and appending `Error`:
+
+| Variable          | Generated type      |
+|-------------------|---------------------|
+| `ErrHTTP`         | `HTTPError`         |
+| `ErrNotFound`     | `NotFoundError`     |
+| `ErrValidation`   | `ValidationError`   |
+
 ### Error-typed fields and `Unwrap`
 
 When fields have type `error`, they are all included in `Unwrap() []error` alongside the sentinel. This supports the full `errors.Is`/`errors.As` chain:
@@ -300,6 +315,21 @@ func (e *WrapChainError) Unwrap() []error {
 ```
 
 Without error-typed fields, `Unwrap()` returns just the sentinel as a single `error`.
+
+### JSON serialization
+
+Every error type with fields implements `json.Marshaler` and `json.Unmarshaler`. The JSON output includes an `"error"` key with the formatted message plus all typed fields:
+
+```go
+err := api.NewHTTPError(404, "user not found")
+data, _ := json.Marshal(err)
+```
+
+```json
+{"error":"HTTP 404: user not found","statusCode":404,"message":"user not found"}
+```
+
+Error-typed fields are serialized as strings. On unmarshal, they are reconstructed via `errors.New`.
 
 ### Structured logging
 
@@ -430,33 +460,6 @@ span.RecordError(err, trace.WithAttributes(err.Attributes()...))
 span.SetAttributes(err.Attributes()...)
 ```
 
-### JSON serialization
-
-Every error type with fields implements `json.Marshaler` and `json.Unmarshaler`. The JSON output includes an `"error"` key with the formatted message plus all typed fields:
-
-```go
-err := api.NewHTTPError(404, "user not found")
-data, _ := json.Marshal(err)
-```
-
-```json
-{"error":"HTTP 404: user not found","statusCode":404,"message":"user not found"}
-```
-
-Error-typed fields are serialized as strings. On unmarshal, they are reconstructed via `errors.New`.
-
-### Generated type naming
-
-The `Err` prefix is not required but recommended — it follows Go convention and produces cleaner type names
-
-The type name is derived from the variable name by stripping the `Err` prefix and appending `Error`:
-
-| Variable          | Generated type      |
-|-------------------|---------------------|
-| `ErrHTTP`         | `HTTPError`         |
-| `ErrNotFound`     | `NotFoundError`     |
-| `ErrValidation`   | `ValidationError`   |
-
 ### Hook file (`_gen_hook.go`)
 
 On the first run, `errgen` creates a hook file alongside the generated code. This file contains an `onCreate()` method stub for each error type:
@@ -501,54 +504,14 @@ Opt-in only - zero cost when the flag is not set. Use `runtime.CallersFrames(err
 
 ## Example
 
-Annotate your sentinel errors ([example/api/errors.go](example/api/errors.go)):
+Runnable examples live in [`example/`](example/):
 
-```go
-package api
-
-import "errors"
-
-//go:generate go run github.com/myjupyter/errgen
-
-var (
-    // @StatusCode int
-    // @Message string
-    // @Error("HTTP %StatusCode: %Message")
-    ErrHTTP = errors.New("http error")
-
-    // @Field string
-    // @WrappedError error
-    // @Error("validation failed on '%Field': %WrappedError")
-    ErrValidation = errors.New("validation error")
-)
-```
-
-Run `go generate ./...`. This produces two files:
-
-- **[`errors_gen.go`](example/api/errors_gen.go)** - the generated structs, constructors, and error interface methods. Regenerated every time.
-- **[`errors_gen_hook.go`](example/api/errors_gen_hook.go)** - `onCreate()` stubs for custom logic. Created once, never overwritten.
-
-Then use the generated types in your code ([example/main.go](example/main.go)):
-
-```go
-// Create errors with typed fields
-err := api.NewHTTPError(http.StatusNotFound, "user not found")
-
-...
-
-// Extract data with errors.As
-var httpErr *api.HTTPError
-if errors.As(err, &httpErr) {
-    fmt.Printf("status: %d, message: %s\n", httpErr.StatusCode, httpErr.Message)
-}
-
-// Match sentinels with errors.Is
-if errors.Is(err, api.ErrHTTP) {
-    fmt.Println("it's an HTTP error")
-}
-```
-
-See the full runnable example in the [example/](example/) directory.
+- [`example/api`](example/api/) — sentinel errors with typed fields, used from [`example/main.go`](example/main.go)
+- [`example/loggers/slog`](example/loggers/slog/) — structured logging with `log/slog`
+- [`example/loggers/zap`](example/loggers/zap/) — structured logging with `go.uber.org/zap`
+- [`example/loggers/zerolog`](example/loggers/zerolog/) — structured logging with `github.com/rs/zerolog`
+- [`example/loggers/logrus`](example/loggers/logrus/) — structured logging with `github.com/sirupsen/logrus`
+- [`example/otel`](example/otel/) — span attributes with OpenTelemetry
 
 ## License
 
