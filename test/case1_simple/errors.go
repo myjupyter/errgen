@@ -7,6 +7,8 @@ import "errors"
 var (
 	// @Code int
 	// @Message string
+	// @ErrTime time.Time
+	// @Ctx context.Context
 	// @Error("error code %Code: %Message")
 	ErrApplication = errors.New("application error")
 
