@@ -2,7 +2,7 @@
 
 package {{.PackageName}}
 
-{{- if or .NeedsFmt .NeedsSlog .NeedsJSON .NeedsErrors .NeedsHTTPStatus .StackTrace .Zap.NeedsZapcore .Zap.NeedsZap (gt (len .Imports) 0)}}
+{{- if or .NeedsFmt .NeedsSlog .NeedsJSON .NeedsErrors .NeedsHTTPStatus .StackTrace .Zap.NeedsZapcore .Zap.NeedsZap .Zerolog.NeedsZerolog (gt (len .Imports) 0)}}
 
 import (
 {{- if .NeedsJSON}}
@@ -32,6 +32,10 @@ import (
 {{- end}}
 {{- if .Zap.NeedsZapcore}}
 	"go.uber.org/zap/zapcore"
+{{- end}}
+{{- if .Zerolog.NeedsZerolog}}
+
+	"github.com/rs/zerolog"
 {{- end}}
 )
 {{- end}}
@@ -144,6 +148,10 @@ func (e *{{.TypeName}}) UnmarshalJSON(data []byte) error {
 {{- if $.Zap.Enabled}}
 
 {{template "zapMarshalLogObject" .}}
+{{- end}}
+{{- if $.Zerolog.Enabled}}
+
+{{template "zerologMarshalZerologObject" .}}
 {{- end}}
 {{- end}}
 

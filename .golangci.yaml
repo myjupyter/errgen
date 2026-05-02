@@ -45,8 +45,12 @@ linters:
     rules:
       - path: (.+)_test\.go
         linters:
-          - funlen 
-          - goconst 
+          - funlen
+          - goconst
+          - gocyclo
+      - path: internal/generator/field_matchers\.go
+        linters:
+          - goconst
 
 issues:
   max-issues-per-linter: 0

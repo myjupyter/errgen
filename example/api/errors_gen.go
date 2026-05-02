@@ -33,8 +33,9 @@ func (e *HTTPError) Unwrap() error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *HTTPError) LogValue() slog.Value {
 	return slog.GroupValue(
-		slog.Any("statusCode", e.StatusCode),
-		slog.Any("message", e.Message),
+		slog.String("error", e.Error()),
+		slog.Int("statusCode", e.StatusCode),
+		slog.String("message", e.Message),
 	)
 }
 
@@ -100,7 +101,8 @@ func (e *ValidationError) Unwrap() []error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *ValidationError) LogValue() slog.Value {
 	return slog.GroupValue(
-		slog.Any("field", e.Field),
+		slog.String("error", e.Error()),
+		slog.String("field", e.Field),
 		slog.Any("wrappedError", e.WrappedError),
 	)
 }

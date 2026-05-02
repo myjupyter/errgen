@@ -172,6 +172,7 @@ func (e *InternalError) onCreate() {
 -no-hooks      skip hook file generation
 -stack-trace   capture call stack in constructors via runtime.Callers
 -zap           also generate a zapcore.ObjectMarshaler implementation (adds go.uber.org/zap dependency)
+-zerolog       also generate a zerolog.LogObjectMarshaler implementation (adds github.com/rs/zerolog dependency)
 ```
 
 ### Cross-package generation
@@ -301,10 +302,11 @@ Without error-typed fields, `Unwrap()` returns just the sentinel as a single `er
 
 Every error type with fields implements one or more structured-logger interfaces, so loggers extract typed fields instead of just calling `Error()`. Each implementation includes the formatted error message under the `"error"` key plus every declared field — a single log entry is self-contained.
 
-| Logger | Package                                                | Interface                 | When generated   | Required deps          |
-|--------|--------------------------------------------------------|---------------------------|------------------|------------------------|
-| slog   | [`log/slog`](https://pkg.go.dev/log/slog)              | `slog.LogValuer`          | always (stdlib)  | none (stdlib)          |
-| zap    | [`go.uber.org/zap`](https://github.com/uber-go/zap)    | `zapcore.ObjectMarshaler` | with `-zap` flag | `go.uber.org/zap`      |
+| Logger  | Package                                                  | Interface                    | When generated       | Required deps           |
+|---------|----------------------------------------------------------|------------------------------|----------------------|-------------------------|
+| slog    | [`log/slog`](https://pkg.go.dev/log/slog)                | `slog.LogValuer`             | always (stdlib)      | none (stdlib)           |
+| zap     | [`go.uber.org/zap`](https://github.com/uber-go/zap)      | `zapcore.ObjectMarshaler`    | with `-zap` flag     | `go.uber.org/zap`       |
+| zerolog | [`github.com/rs/zerolog`](https://github.com/rs/zerolog) | `zerolog.LogObjectMarshaler` | with `-zerolog` flag | `github.com/rs/zerolog` |
 
 #### go
 
@@ -355,6 +357,33 @@ log.Error("request failed", zap.Object("error", err))
   "msg": "request failed",
   "error": {
     "error": "user with ID 123 not found",
+    "entityType": "user",
+    "iD": 123
+  }
+}
+```
+
+#### zerolog
+
+Add `-zerolog` to the `go:generate` directive:
+
+```go
+//go:generate go run github.com/myjupyter/errgen -zerolog
+```
+
+Then log with `Event.Object`:
+
+```go
+log.Error().Object("error", err).Msg("request failed")
+```
+
+```json
+{
+  "level": "error",
+  "time": 1777723001,
+  "message": "request failed",
+  "error": {
+    "error": "'user' with ID 123 not found",
     "entityType": "user",
     "iD": 123
   }

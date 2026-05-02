@@ -32,6 +32,7 @@ func (e *ParsingError) Unwrap() []error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *ParsingError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("wrappedError", e.WrappedError),
 	)
 }
@@ -96,6 +97,7 @@ func (e *GenerationError) Unwrap() []error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *GenerationError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("wrappedError", e.WrappedError),
 	)
 }
@@ -160,6 +162,7 @@ func (e *ResolvingError) Unwrap() []error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *ResolvingError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("wrappedError", e.WrappedError),
 	)
 }
@@ -225,7 +228,8 @@ func (e *ParsingAnnotationError) Unwrap() []error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *ParsingAnnotationError) LogValue() slog.Value {
 	return slog.GroupValue(
-		slog.Any("errVarName", e.ErrVarName),
+		slog.String("error", e.Error()),
+		slog.String("errVarName", e.ErrVarName),
 		slog.Any("wrappedError", e.WrappedError),
 	)
 }
@@ -296,7 +300,8 @@ func (e *ParsingFileError) Unwrap() []error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *ParsingFileError) LogValue() slog.Value {
 	return slog.GroupValue(
-		slog.Any("filename", e.Filename),
+		slog.String("error", e.Error()),
+		slog.String("filename", e.Filename),
 		slog.Any("wrappedError", e.WrappedError),
 	)
 }
@@ -366,7 +371,8 @@ func (e *ParsingInvalidErrorAnnotationError) Unwrap() error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *ParsingInvalidErrorAnnotationError) LogValue() slog.Value {
 	return slog.GroupValue(
-		slog.Any("invalidAnnotationText", e.InvalidAnnotationText),
+		slog.String("error", e.Error()),
+		slog.String("invalidAnnotationText", e.InvalidAnnotationText),
 	)
 }
 
@@ -427,8 +433,9 @@ func (e *ParsingInvalidVarAnnotationError) Unwrap() error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *ParsingInvalidVarAnnotationError) LogValue() slog.Value {
 	return slog.GroupValue(
-		slog.Any("invalidAnnotationText", e.InvalidAnnotationText),
-		slog.Any("message", e.Message),
+		slog.String("error", e.Error()),
+		slog.String("invalidAnnotationText", e.InvalidAnnotationText),
+		slog.String("message", e.Message),
 	)
 }
 
@@ -494,7 +501,8 @@ func (e *GenInvalidTemplateError) Unwrap() []error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *GenInvalidTemplateError) LogValue() slog.Value {
 	return slog.GroupValue(
-		slog.Any("templateName", e.TemplateName),
+		slog.String("error", e.Error()),
+		slog.String("templateName", e.TemplateName),
 		slog.Any("wrappedError", e.WrappedError),
 	)
 }
@@ -564,6 +572,7 @@ func (e *GenTemplateExecError) Unwrap() []error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *GenTemplateExecError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("wrappedError", e.WrappedError),
 	)
 }
@@ -628,6 +637,7 @@ func (e *GenCodeFormattingError) Unwrap() []error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *GenCodeFormattingError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("wrappedError", e.WrappedError),
 	)
 }
@@ -692,7 +702,8 @@ func (e *GenUnknownFieldError) Unwrap() error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *GenUnknownFieldError) LogValue() slog.Value {
 	return slog.GroupValue(
-		slog.Any("unknownField", e.UnknownField),
+		slog.String("error", e.Error()),
+		slog.String("unknownField", e.UnknownField),
 	)
 }
 
@@ -753,7 +764,8 @@ func (e *GenErrDefError) Unwrap() []error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *GenErrDefError) LogValue() slog.Value {
 	return slog.GroupValue(
-		slog.Any("errVarName", e.ErrVarName),
+		slog.String("error", e.Error()),
+		slog.String("errVarName", e.ErrVarName),
 		slog.Any("wrappedError", e.WrappedError),
 	)
 }
@@ -824,8 +836,9 @@ func (e *PackageNotFoundError) Unwrap() error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *PackageNotFoundError) LogValue() slog.Value {
 	return slog.GroupValue(
-		slog.Any("packageName", e.PackageName),
-		slog.Any("modulePath", e.ModulePath),
+		slog.String("error", e.Error()),
+		slog.String("packageName", e.PackageName),
+		slog.String("modulePath", e.ModulePath),
 	)
 }
 
@@ -891,8 +904,9 @@ func (e *AmbiguousPackageError) Unwrap() error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *AmbiguousPackageError) LogValue() slog.Value {
 	return slog.GroupValue(
-		slog.Any("packageName", e.PackageName),
-		slog.Any("locations", e.Locations),
+		slog.String("error", e.Error()),
+		slog.String("packageName", e.PackageName),
+		slog.String("locations", e.Locations),
 	)
 }
 

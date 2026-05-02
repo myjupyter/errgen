@@ -1,0 +1,15 @@
+{{define "zerologMarshalZerologObject" -}}
+// MarshalZerologObject implements [zerolog.LogObjectMarshaler] for zerolog structured logging
+func (e *{{.TypeName}}) MarshalZerologObject(event *zerolog.Event) {
+	event.Str("error", e.Error())
+{{- range .Fields}}
+{{- if eq .Type "error"}}
+	if e.{{.Name}} != nil {
+		event.Str("{{.NameLower}}", e.{{.Name}}.Error())
+	}
+{{- else}}
+	event.{{zerologMethod .Type}}("{{.NameLower}}", {{zerologValueOf .Type .Name}})
+{{- end}}
+{{- end}}
+}
+{{- end}}
