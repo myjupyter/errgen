@@ -175,6 +175,7 @@ func (e *InternalError) onCreate() {
 -zap           also generate a zapcore.ObjectMarshaler implementation (adds go.uber.org/zap dependency)
 -zerolog       also generate a zerolog.LogObjectMarshaler implementation (adds github.com/rs/zerolog dependency)
 -otel          also generate an Attributes() []attribute.KeyValue method (adds go.opentelemetry.io/otel dependency)
+-logrus        also generate a LogrusFields() logrus.Fields method (adds github.com/sirupsen/logrus dependency)
 ```
 
 ### Cross-package generation
@@ -304,11 +305,12 @@ Without error-typed fields, `Unwrap()` returns just the sentinel as a single `er
 
 Every error type with fields implements one or more structured-logger interfaces, so loggers extract typed fields instead of just calling `Error()`. Each implementation includes the formatted error message under the `"error"` key plus every declared field — a single log entry is self-contained.
 
-| Logger  | Package                                                  | Interface                    | When generated       | Required deps           |
-|---------|----------------------------------------------------------|------------------------------|----------------------|-------------------------|
-| slog    | [`log/slog`](https://pkg.go.dev/log/slog)                | `slog.LogValuer`             | always (stdlib)      | none (stdlib)           |
-| zap     | [`go.uber.org/zap`](https://github.com/uber-go/zap)      | `zapcore.ObjectMarshaler`    | with `-zap` flag     | `go.uber.org/zap`       |
-| zerolog | [`github.com/rs/zerolog`](https://github.com/rs/zerolog) | `zerolog.LogObjectMarshaler` | with `-zerolog` flag | `github.com/rs/zerolog` |
+| Logger  | Package                                                          | Interface / method               | When generated       | Required deps                   |
+|---------|------------------------------------------------------------------|----------------------------------|----------------------|---------------------------------|
+| slog    | [`log/slog`](https://pkg.go.dev/log/slog)                        | `slog.LogValuer`                 | always (stdlib)      | none (stdlib)                   |
+| zap     | [`go.uber.org/zap`](https://github.com/uber-go/zap)              | `zapcore.ObjectMarshaler`        | with `-zap` flag     | `go.uber.org/zap`               |
+| zerolog | [`github.com/rs/zerolog`](https://github.com/rs/zerolog)         | `zerolog.LogObjectMarshaler`     | with `-zerolog` flag | `github.com/rs/zerolog`         |
+| logrus  | [`github.com/sirupsen/logrus`](https://github.com/sirupsen/logrus) | `LogrusFields() logrus.Fields` | with `-logrus` flag  | `github.com/sirupsen/logrus`    |
 
 #### go
 
@@ -390,6 +392,22 @@ log.Error().Object("error", err).Msg("request failed")
     "iD": 123
   }
 }
+```
+
+#### logrus
+
+Add `-logrus` to the `go:generate` directive:
+
+```go
+//go:generate go run github.com/myjupyter/errgen -logrus
+```
+
+Then attach the fields with `WithFields`:
+
+```go
+err := NewEntityNotFoundError("user", 123)
+
+log.WithFields(err.LogrusFields()).Error("request failed")
 ```
 
 ### OpenTelemetry

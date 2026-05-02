@@ -2,7 +2,7 @@
 
 package {{.PackageName}}
 
-{{- if or .NeedsFmt .NeedsSlog .NeedsJSON .NeedsErrors .StackTrace .Zap.NeedsZapcore .Zap.NeedsZap .Zerolog.NeedsZerolog .OTel.NeedsAttribute (gt (len .Imports) 0)}}
+{{- if or .NeedsFmt .NeedsSlog .NeedsJSON .NeedsErrors .StackTrace .Zap.NeedsZapcore .Zap.NeedsZap .Zerolog.NeedsZerolog .OTel.NeedsAttribute .Logrus.NeedsLogrus (gt (len .Imports) 0)}}
 
 import (
 {{- if .NeedsJSON}}
@@ -37,6 +37,10 @@ import (
 {{- if .OTel.NeedsAttribute}}
 
 	"go.opentelemetry.io/otel/attribute"
+{{- end}}
+{{- if .Logrus.NeedsLogrus}}
+
+	"github.com/sirupsen/logrus"
 {{- end}}
 )
 {{- end}}
@@ -157,6 +161,10 @@ func (e *{{.TypeName}}) UnmarshalJSON(data []byte) error {
 {{- if $.OTel.Enabled}}
 
 {{template "otelAttributes" .}}
+{{- end}}
+{{- if $.Logrus.Enabled}}
+
+{{template "logrusFields" .}}
 {{- end}}
 {{- end}}
 
