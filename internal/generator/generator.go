@@ -145,7 +145,7 @@ type importFlags struct { //nolint:govet // readability over alignment
 // aggregateImportFlags walks every error def once and returns the union of
 // imports and the std/std-logger flags the main template uses to gate its
 // import block and per-section codegen.
-func aggregateImportFlags(defs []errDefData, in GenerateInput) importFlags {
+func aggregateImportFlags(defs []errDefData, in GenerateInput) importFlags { //nolint:gocyclo // straight-line aggregation of per-def import flags
 	seen := make(map[string]bool)
 	flags := importFlags{
 		zap:     zapTemplateData{Enabled: in.Zap},
@@ -172,7 +172,10 @@ func aggregateImportFlags(defs []errDefData, in GenerateInput) importFlags {
 		if len(d.WrappedFields) > 0 {
 			flags.needsErrors = true
 		}
-		if d.Code != nil {
+		if d.Code != nil && strings.HasPrefix(*d.Code, "http.") {
+			// Only import "net/http" when the user references http.<Const>.
+			// Bare int literals (@Code(404)) and other-package constants don't
+			// need the stdlib http import.
 			flags.needsHTTPStatus = true
 		}
 		for _, f := range d.Fields {

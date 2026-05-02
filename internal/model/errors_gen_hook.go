@@ -98,3 +98,9 @@ func (e *GoModNotFoundError) onCreate() {
 func (e *NoModuleDirectiveError) onCreate() {
 	// put custom logic here
 }
+
+// onCreate is a hook for user custom logic
+// the code inside must not panic
+func (e *ParsingInvalidCodeAnnotationError) onCreate() {
+	// put custom logic here
+}
