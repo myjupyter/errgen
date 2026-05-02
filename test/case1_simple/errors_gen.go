@@ -3,16 +3,20 @@
 package case1
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 )
 
 // ApplicationError is a rich error type wrapping [ErrApplication]
 type ApplicationError struct {
 	Code    int
 	Message string
+	ErrTime time.Time
+	Ctx     context.Context
 }
 
 // Error implements the error interface
@@ -35,27 +39,35 @@ func (e *ApplicationError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.Any("code", e.Code),
 		slog.Any("message", e.Message),
+		slog.Any("errTime", e.ErrTime),
+		slog.Any("ctx", e.Ctx),
 	)
 }
 
 // MarshalJSON implements [json.Marshaler]
 func (e *ApplicationError) MarshalJSON() ([]byte, error) {
 	type jsonError struct {
-		Error   string `json:"error"`
-		Code    int    `json:"code"`
-		Message string `json:"message"`
+		Error   string          `json:"error"`
+		Code    int             `json:"code"`
+		Message string          `json:"message"`
+		ErrTime time.Time       `json:"errTime"`
+		Ctx     context.Context `json:"ctx"`
 	}
 	d := jsonError{Error: e.Error()}
 	d.Code = e.Code
 	d.Message = e.Message
+	d.ErrTime = e.ErrTime
+	d.Ctx = e.Ctx
 	return json.Marshal(d)
 }
 
 // UnmarshalJSON implements [json.Unmarshaler]
 func (e *ApplicationError) UnmarshalJSON(data []byte) error {
 	type jsonError struct {
-		Code    int    `json:"code"`
-		Message string `json:"message"`
+		Code    int             `json:"code"`
+		Message string          `json:"message"`
+		ErrTime time.Time       `json:"errTime"`
+		Ctx     context.Context `json:"ctx"`
 	}
 	var d jsonError
 	if err := json.Unmarshal(data, &d); err != nil {
@@ -63,14 +75,18 @@ func (e *ApplicationError) UnmarshalJSON(data []byte) error {
 	}
 	e.Code = d.Code
 	e.Message = d.Message
+	e.ErrTime = d.ErrTime
+	e.Ctx = d.Ctx
 	return nil
 }
 
 // NewApplicationError creates a new ApplicationError
-func NewApplicationError(code int, message string) *ApplicationError {
+func NewApplicationError(code int, message string, errTime time.Time, ctx context.Context) *ApplicationError {
 	e := &ApplicationError{
 		Code:    code,
 		Message: message,
+		ErrTime: errTime,
+		Ctx:     ctx,
 	}
 	e.onCreate()
 	return e
