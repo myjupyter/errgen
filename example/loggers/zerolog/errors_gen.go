@@ -194,6 +194,11 @@ func (e *EntityNotFoundError) Unwrap() error {
 	return ErrEntityNotFound
 }
 
+// StatusCode returns the HTTP status code for this error
+func (e *EntityNotFoundError) StatusCode() int {
+	return 404
+}
+
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *EntityNotFoundError) LogValue() slog.Value {
 	return slog.GroupValue(

@@ -98,19 +98,18 @@ func (g *Generator) Generate(in GenerateInput) ([]byte, error) {
 	flags := aggregateImportFlags(tmplDefs, in)
 
 	data := templateData{
-		PackageName:     in.PackageName,
-		Imports:         flags.imports,
-		Defs:            tmplDefs,
-		NeedsFmt:        flags.needsFmt,
-		NeedsSlog:       flags.needsSlog,
-		NeedsJSON:       flags.needsJSON,
-		NeedsErrors:     flags.needsErrors,
-		NeedsHTTPStatus: flags.needsHTTPStatus,
-		StackTrace:      in.StackTrace,
-		NoHooks:         in.NoHooks,
-		Zap:             flags.zap,
-		Zerolog:         flags.zerolog,
-		OTel:            flags.otel,
+		PackageName: in.PackageName,
+		Imports:     flags.imports,
+		Defs:        tmplDefs,
+		NeedsFmt:    flags.needsFmt,
+		NeedsSlog:   flags.needsSlog,
+		NeedsJSON:   flags.needsJSON,
+		NeedsErrors: flags.needsErrors,
+		StackTrace:  in.StackTrace,
+		NoHooks:     in.NoHooks,
+		Zap:         flags.zap,
+		Zerolog:     flags.zerolog,
+		OTel:        flags.otel,
 	}
 
 	var buf bytes.Buffer
@@ -131,21 +130,20 @@ func (g *Generator) Generate(in GenerateInput) ([]byte, error) {
 // importFlags collects every per-file boolean and import path that the main
 // template needs, computed once per Generate call by aggregateImportFlags.
 type importFlags struct { //nolint:govet // readability over alignment
-	imports         []string
-	needsFmt        bool
-	needsSlog       bool
-	needsJSON       bool
-	needsErrors     bool
-	needsHTTPStatus bool
-	zap             zapTemplateData
-	zerolog         zerologTemplateData
-	otel            otelTemplateData
+	imports     []string
+	needsFmt    bool
+	needsSlog   bool
+	needsJSON   bool
+	needsErrors bool
+	zap         zapTemplateData
+	zerolog     zerologTemplateData
+	otel        otelTemplateData
 }
 
 // aggregateImportFlags walks every error def once and returns the union of
 // imports and the std/std-logger flags the main template uses to gate its
 // import block and per-section codegen.
-func aggregateImportFlags(defs []errDefData, in GenerateInput) importFlags {
+func aggregateImportFlags(defs []errDefData, in GenerateInput) importFlags { //nolint:gocyclo // straight-line aggregation of per-def import flags
 	seen := make(map[string]bool)
 	flags := importFlags{
 		zap:     zapTemplateData{Enabled: in.Zap},
@@ -172,8 +170,12 @@ func aggregateImportFlags(defs []errDefData, in GenerateInput) importFlags {
 		if len(d.WrappedFields) > 0 {
 			flags.needsErrors = true
 		}
-		if d.Code != nil {
-			flags.needsHTTPStatus = true
+		if d.Code != nil && d.Code.ImportPath != "" && !seen[d.Code.ImportPath] {
+			// Bare int literals (@Code(404)) and same-package identifiers leave
+			// ImportPath empty and add no import. http.* is reached the same way
+			// since the resolver maps "http" → "net/http".
+			seen[d.Code.ImportPath] = true
+			flags.imports = append(flags.imports, d.Code.ImportPath)
 		}
 		for _, f := range d.Fields {
 			if f.ImportPath != "" && !seen[f.ImportPath] {
@@ -253,6 +255,11 @@ func buildDefData(def model.ErrDef) (errDefData, error) {
 	// build type name
 	typeName := buildErrorTypeName(def.Name)
 
+	var code *codeData
+	if def.Code != nil {
+		code = &codeData{Expr: def.Code.Expr, ImportPath: def.Code.ImportPath}
+	}
+
 	return errDefData{
 		TypeName:        typeName,
 		VarName:         def.Name,
@@ -260,7 +267,7 @@ func buildDefData(def model.ErrDef) (errDefData, error) {
 		ErrorFormat:     errorFormat,
 		ConstructorArgs: constructorArgs,
 		WrappedFields:   wrappedFields,
-		Code:            def.Code,
+		Code:            code,
 	}, nil
 }
 

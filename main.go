@@ -201,14 +201,18 @@ func run(cfg *config) error {
 }
 
 func resolveImports(fileInfo *model.FileInfo, manualImports importMapFlag, inputFile string) error {
-	var allTypes []string
+	// Collect package-qualified strings from both field types and @Code expressions.
+	var qualified []string
 	for _, def := range fileInfo.ErrDefs {
 		for _, f := range def.Fields {
-			allTypes = append(allTypes, f.Type)
+			qualified = append(qualified, f.Type)
+		}
+		if def.Code != nil {
+			qualified = append(qualified, def.Code.Expr)
 		}
 	}
 
-	pkgNames := resolver.ExtractPackageNames(allTypes)
+	pkgNames := resolver.ExtractPackageNames(qualified)
 	if len(pkgNames) == 0 {
 		return nil
 	}
@@ -238,12 +242,18 @@ func resolveImports(fileInfo *model.FileInfo, manualImports importMapFlag, input
 		}
 	}
 
-	// Assign import paths back to fields
+	// Assign import paths back to fields and @Code defs
 	for i := range fileInfo.ErrDefs {
 		for j, f := range fileInfo.ErrDefs[i].Fields {
 			pkgName := resolver.ExtractPkgName(f.Type)
 			if pkgName != "" {
 				fileInfo.ErrDefs[i].Fields[j].ImportPath = resolved[pkgName]
+			}
+		}
+		if fileInfo.ErrDefs[i].Code != nil {
+			pkgName := resolver.ExtractPkgName(fileInfo.ErrDefs[i].Code.Expr)
+			if pkgName != "" {
+				fileInfo.ErrDefs[i].Code.ImportPath = resolved[pkgName]
 			}
 		}
 	}

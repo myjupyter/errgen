@@ -23,4 +23,9 @@ var (
 	// no @Code — should not get StatusCode method
 	// @Reason string
 	ErrGeneric = errors.New("generic error")
+
+	// @Message string
+	// @Code(codes.NotAuthCode)
+	// @Error("not authorized: %Message")
+	ErrNotAuth = errors.New("not authorized")
 )

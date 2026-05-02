@@ -33,6 +33,9 @@ var (
 	// @Message string
 	// @Error("invalid var annotation '%InvalidAnnotationText': %Message")
 	ErrParsingInvalidVarAnnotation = errors.New("invalid var annotation")
+	// @InvalidAnnotationText string
+	// @Error("invalid code annotation '%InvalidAnnotationText': expected an int literal or a qualified constant like http.StatusNotFound")
+	ErrParsingInvalidCodeAnnotation = errors.New("invalid code annotation")
 )
 
 // Generation error declarations

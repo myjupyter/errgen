@@ -156,10 +156,13 @@ func parseAnnotation(text string, def *model.ErrDef) error {
 		return nil
 	}
 
-	// @Code(...) — gRPC status code annotation
+	// @Code(...) — HTTP status code annotation
 	if strings.HasPrefix(text, "@Code(") {
-		code := parseCodeAnnotation(text)
-		def.Code = &code
+		expr, err := parseCodeAnnotation(text)
+		if err != nil {
+			return err
+		}
+		def.Code = &model.CodeDef{Expr: expr}
 		return nil
 	}
 
@@ -173,11 +176,27 @@ func parseAnnotation(text string, def *model.ErrDef) error {
 	return nil
 }
 
-// parseCodeAnnotation extracts the code expression from @Code(...)
-func parseCodeAnnotation(text string) string {
+// parseCodeAnnotation extracts the code expression from @Code(...). The inner
+// expression must be either an int literal (e.g. 404, -1, 0x1F4) or a Go
+// identifier / qualified identifier (e.g. http.StatusNotFound, MyConst).
+// More complex expressions are rejected to keep the contract narrow — users
+// who need them can declare a named constant in their package and reference it.
+func parseCodeAnnotation(text string) (string, error) {
 	inner := strings.TrimPrefix(text, "@Code(")
-	return strings.TrimSuffix(strings.TrimSpace(inner), ")")
+	expr := strings.TrimSuffix(strings.TrimSpace(inner), ")")
+	expr = strings.TrimSpace(expr)
+	if expr == "" || !codeExprRegex.MatchString(expr) {
+		return "", model.NewParsingInvalidCodeAnnotationError(text)
+	}
+	return expr, nil
 }
+
+// codeExprRegex accepts either:
+//   - a signed int literal (decimal or hex): 404, -1, 0x1F4
+//   - a Go identifier or qualified identifier: MyConst, http.StatusNotFound
+var codeExprRegex = regexp.MustCompile(
+	`^(-?(0[xX][0-9a-fA-F]+|\d+)|[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?)$`,
+)
 
 // parseErrorAnnotation extracts the format string from @Error("...")
 func parseErrorAnnotation(text string) (string, error) {

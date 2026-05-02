@@ -5,6 +5,7 @@ package case7
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/myjupyter/errgen/test/case7_http_status/codes"
 	"log/slog"
 	"net/http"
 )
@@ -263,6 +264,72 @@ func (e *GenericError) UnmarshalJSON(data []byte) error {
 func NewGenericError(reason string) *GenericError {
 	e := &GenericError{
 		Reason: reason,
+	}
+	e.onCreate()
+	return e
+}
+
+// NotAuthError is a rich error type wrapping [ErrNotAuth]
+type NotAuthError struct {
+	Message string
+}
+
+// Error implements the error interface
+func (e *NotAuthError) Error() string {
+	return fmt.Sprintf("not authorized: %v", e.Message)
+}
+
+// Is reports whether the target matches [ErrNotAuth]
+func (e *NotAuthError) Is(target error) bool {
+	return target == ErrNotAuth
+}
+
+// Unwrap returns the underlying error(s)
+func (e *NotAuthError) Unwrap() error {
+	return ErrNotAuth
+}
+
+// StatusCode returns the HTTP status code for this error
+func (e *NotAuthError) StatusCode() int {
+	return codes.NotAuthCode
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *NotAuthError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.String("error", e.Error()),
+		slog.String("message", e.Message),
+	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *NotAuthError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error   string `json:"error"`
+		Message string `json:"message"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.Message = e.Message
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *NotAuthError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		Message string `json:"message"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.Message = d.Message
+	return nil
+}
+
+// NewNotAuthError creates a new NotAuthError
+func NewNotAuthError(message string) *NotAuthError {
+	e := &NotAuthError{
+		Message: message,
 	}
 	e.onCreate()
 	return e

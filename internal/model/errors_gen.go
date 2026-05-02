@@ -477,6 +477,67 @@ func NewParsingInvalidVarAnnotationError(invalidAnnotationText string, message s
 	return e
 }
 
+// ParsingInvalidCodeAnnotationError is a rich error type wrapping [ErrParsingInvalidCodeAnnotation]
+type ParsingInvalidCodeAnnotationError struct {
+	InvalidAnnotationText string
+}
+
+// Error implements the error interface
+func (e *ParsingInvalidCodeAnnotationError) Error() string {
+	return fmt.Sprintf("invalid code annotation '%v': expected an int literal or a qualified constant like http.StatusNotFound", e.InvalidAnnotationText)
+}
+
+// Is reports whether the target matches [ErrParsingInvalidCodeAnnotation]
+func (e *ParsingInvalidCodeAnnotationError) Is(target error) bool {
+	return target == ErrParsingInvalidCodeAnnotation
+}
+
+// Unwrap returns the underlying error(s)
+func (e *ParsingInvalidCodeAnnotationError) Unwrap() error {
+	return ErrParsingInvalidCodeAnnotation
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *ParsingInvalidCodeAnnotationError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.String("error", e.Error()),
+		slog.String("invalidAnnotationText", e.InvalidAnnotationText),
+	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *ParsingInvalidCodeAnnotationError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error                 string `json:"error"`
+		InvalidAnnotationText string `json:"invalidAnnotationText"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.InvalidAnnotationText = e.InvalidAnnotationText
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *ParsingInvalidCodeAnnotationError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		InvalidAnnotationText string `json:"invalidAnnotationText"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.InvalidAnnotationText = d.InvalidAnnotationText
+	return nil
+}
+
+// NewParsingInvalidCodeAnnotationError creates a new ParsingInvalidCodeAnnotationError
+func NewParsingInvalidCodeAnnotationError(invalidAnnotationText string) *ParsingInvalidCodeAnnotationError {
+	e := &ParsingInvalidCodeAnnotationError{
+		InvalidAnnotationText: invalidAnnotationText,
+	}
+	e.onCreate()
+	return e
+}
+
 // GenInvalidTemplateError is a rich error type wrapping [ErrGenInvalidTemplate]
 type GenInvalidTemplateError struct {
 	TemplateName string
