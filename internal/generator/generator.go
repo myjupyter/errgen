@@ -27,9 +27,10 @@ type Generator struct {
 	temp *template.Template
 }
 
-// templateFuncs are exposed to the template so it can match Go field types
-// to the right slog/zap constructor instead of using a generic slog.Any /
-// zap.Any for everything.
+// templateFuncs are exposed to the template so each logger section can match
+// Go field types to its typed constructor (slog.Int, enc.AddInt, event.Int, …)
+// instead of falling through to a generic Any / Interface for everything.
+// The mapping tables themselves live in field_matchers.go.
 var templateFuncs = template.FuncMap{
 	"zapMethod":      zapEncoderMethod,
 	"slogMethod":     slogConstructorMethod,
@@ -72,161 +73,9 @@ type GenerateInput struct { //nolint:govet // readability over alignment
 	Zerolog     bool // emit zerolog.LogObjectMarshaler implementation
 }
 
-// zapEncoderMethod returns the zapcore.ObjectEncoder method name for a given
-// Go field type. Returns "Any" for types without a direct encoder method -
-// the template uses that to fall back to zap.Any(key, val).AddTo(enc)
-func zapEncoderMethod(goType string) string { //nolint:funlen,gocyclo // straight-line dispatch
-	switch goType {
-	case "bool": //nolint:goconst
-		return "AddBool"
-	case "string": //nolint:goconst
-		return "AddString"
-	case "int": //nolint:goconst
-		return "AddInt"
-	case "int8": //nolint:goconst
-		return "AddInt8"
-	case "int16": //nolint:goconst
-		return "AddInt16"
-	case "int32": //nolint:goconst
-		return "AddInt32"
-	case "int64": //nolint:goconst
-		return "AddInt64"
-	case "uint": //nolint:goconst
-		return "AddUint"
-	case "uint8": //nolint:goconst
-		return "AddUint8"
-	case "uint16": //nolint:goconst
-		return "AddUint16"
-	case "uint32": //nolint:goconst
-		return "AddUint32"
-	case "uint64": //nolint:goconst
-		return "AddUint64"
-	case "uintptr": //nolint:goconst
-		return "AddUintptr"
-	case "float32": //nolint:goconst
-		return "AddFloat32"
-	case "float64": //nolint:goconst
-		return "AddFloat64"
-	case "complex64":
-		return "AddComplex64"
-	case "complex128":
-		return "AddComplex128"
-	case "time.Duration": //nolint:goconst
-		return "AddDuration"
-	case "time.Time": //nolint:goconst
-		return "AddTime"
-	case "[]byte":
-		return "AddBinary"
-	default:
-		return "Any" //nolint:goconst
-	}
-}
-
-// slogConstructorMethod returns the slog package constructor name for a given
-// Go field type (e.g. "Int", "String", "Time"). Returns "Any" for types without
-// a direct constructor — slog.Any handles them via reflection
-func slogConstructorMethod(goType string) string {
-	switch goType {
-	case "bool":
-		return "Bool"
-	case "string":
-		return "String"
-	case "int":
-		return "Int"
-	case "int8", "int16", "int32", "int64": //nolint:goconst
-		return "Int64"
-	case "uint", "uint8", "uint16", "uint32", "uint64", "uintptr": //nolint:goconst
-		return "Uint64" //nolint:goconst
-	case "float32", "float64": //nolint:goconst
-		return "Float64"
-	case "time.Time":
-		return "Time"
-	case "time.Duration":
-		return "Duration"
-	default:
-		return "Any" //nolint:goconst
-	}
-}
-
-// slogValueExpr returns the value expression to pass to the slog constructor
-// for a field of the given type. Most types pass through as e.<Name>; widening
-// types (int8/16/32 -> int64, uint variants -> uint64, float32 -> float64)
-// require an explicit cast so the call resolves to the typed constructor.
-func slogValueExpr(goType, fieldName string) string {
-	base := "e." + fieldName
-	switch goType {
-	case "int8", "int16", "int32": //nolint:goconst
-		return "int64(" + base + ")"
-	case "uint", "uint8", "uint16", "uint32", "uintptr": //nolint:goconst
-		return "uint64(" + base + ")"
-	case "float32": //nolint:goconst
-		return "float64(" + base + ")"
-	default:
-		return base
-	}
-}
-
-// zerologEventMethod returns the zerolog.Event method name for a given Go field
-// type (e.g. "Str", "Int", "Time"). Returns "Interface" for types without a
-// direct method — the template uses that to fall back to event.Interface.
-func zerologEventMethod(goType string) string { //nolint:funlen,gocyclo // straight-line dispatch
-	switch goType {
-	case "bool":
-		return "Bool"
-	case "string":
-		return "Str"
-	case "int":
-		return "Int"
-	case "int8": //nolint:goconst
-		return "Int8"
-	case "int16": //nolint:goconst
-		return "Int16"
-	case "int32": //nolint:goconst
-		return "Int32"
-	case "int64":
-		return "Int64"
-	case "uint": //nolint:goconst
-		return "Uint"
-	case "uint8": //nolint:goconst
-		return "Uint8"
-	case "uint16": //nolint:goconst
-		return "Uint16"
-	case "uint32": //nolint:goconst
-		return "Uint32"
-	case "uint64":
-		return "Uint64" //nolint:goconst
-	case "uintptr":
-		return "Uint64" //nolint:goconst
-	case "float32": //nolint:goconst
-		return "Float32"
-	case "float64":
-		return "Float64"
-	case "time.Time":
-		return "Time"
-	case "time.Duration":
-		return "Dur"
-	case "[]byte":
-		return "Bytes"
-	default:
-		return "Interface"
-	}
-}
-
-// zerologValueExpr returns the value expression to pass to a zerolog.Event method.
-// Most types pass through as e.<Name>; uintptr requires widening to uint64 because
-// zerolog has no direct Uintptr method.
-func zerologValueExpr(goType, fieldName string) string {
-	base := "e." + fieldName
-	if goType == "uintptr" {
-		return "uint64(" + base + ")"
-	}
-	return base
-}
-
 // Generate renders Go source for the given error definitions
-func (g *Generator) Generate(in GenerateInput) ([]byte, error) { //nolint:gocyclo // straight-line aggregation of per-def import flags
+func (g *Generator) Generate(in GenerateInput) ([]byte, error) {
 	var tmplDefs []errDefData
-
 	for _, def := range in.Defs {
 		dd, err := buildDefData(def)
 		if err != nil {
@@ -239,61 +88,21 @@ func (g *Generator) Generate(in GenerateInput) ([]byte, error) { //nolint:gocycl
 		tmplDefs = append(tmplDefs, dd)
 	}
 
-	// Collect unique extra imports from fields and determine which std imports are needed
-	seen := make(map[string]bool)
-	var imports []string
-	var needsFmt, needsSlog, needsJSON, needsErrors, needsHTTPStatus bool
-	zapData := zapTemplateData{Enabled: in.Zap}
-	zerologData := zerologTemplateData{Enabled: in.Zerolog}
-	for _, d := range tmplDefs {
-		if d.ErrorFormat != nil {
-			needsFmt = true
-		}
-		if len(d.Fields) > 0 {
-			needsSlog = true
-			needsJSON = true
-			if in.Zap {
-				zapData.NeedsZapcore = true
-			}
-			if in.Zerolog {
-				zerologData.NeedsZerolog = true
-			}
-		}
-		if len(d.WrappedFields) > 0 {
-			needsErrors = true
-		}
-		if d.Code != nil {
-			needsHTTPStatus = true
-		}
-		for _, f := range d.Fields {
-			if f.ImportPath != "" && !seen[f.ImportPath] {
-				seen[f.ImportPath] = true
-				imports = append(imports, f.ImportPath)
-			}
-			if in.Zap && f.Type != "error" && zapEncoderMethod(f.Type) == "Any" {
-				zapData.NeedsZap = true
-			}
-		}
-	}
-
-	// Add source package import when generating into a different package
-	if in.SrcImport != "" && !seen[in.SrcImport] {
-		imports = append(imports, in.SrcImport)
-	}
+	flags := aggregateImportFlags(tmplDefs, in)
 
 	data := templateData{
 		PackageName:     in.PackageName,
-		Imports:         imports,
+		Imports:         flags.imports,
 		Defs:            tmplDefs,
-		NeedsFmt:        needsFmt,
-		NeedsSlog:       needsSlog,
-		NeedsJSON:       needsJSON,
-		NeedsErrors:     needsErrors,
-		NeedsHTTPStatus: needsHTTPStatus,
+		NeedsFmt:        flags.needsFmt,
+		NeedsSlog:       flags.needsSlog,
+		NeedsJSON:       flags.needsJSON,
+		NeedsErrors:     flags.needsErrors,
+		NeedsHTTPStatus: flags.needsHTTPStatus,
 		StackTrace:      in.StackTrace,
 		NoHooks:         in.NoHooks,
-		Zap:             zapData,
-		Zerolog:         zerologData,
+		Zap:             flags.zap,
+		Zerolog:         flags.zerolog,
 	}
 
 	var buf bytes.Buffer
@@ -309,6 +118,65 @@ func (g *Generator) Generate(in GenerateInput) ([]byte, error) { //nolint:gocycl
 	}
 
 	return formatted, nil
+}
+
+// importFlags collects every per-file boolean and import path that the main
+// template needs, computed once per Generate call by aggregateImportFlags.
+type importFlags struct { //nolint:govet // readability over alignment
+	imports         []string
+	needsFmt        bool
+	needsSlog       bool
+	needsJSON       bool
+	needsErrors     bool
+	needsHTTPStatus bool
+	zap             zapTemplateData
+	zerolog         zerologTemplateData
+}
+
+// aggregateImportFlags walks every error def once and returns the union of
+// imports and the std/std-logger flags the main template uses to gate its
+// import block and per-section codegen.
+func aggregateImportFlags(defs []errDefData, in GenerateInput) importFlags {
+	seen := make(map[string]bool)
+	flags := importFlags{
+		zap:     zapTemplateData{Enabled: in.Zap},
+		zerolog: zerologTemplateData{Enabled: in.Zerolog},
+	}
+	for _, d := range defs {
+		if d.ErrorFormat != nil {
+			flags.needsFmt = true
+		}
+		if len(d.Fields) > 0 {
+			flags.needsSlog = true
+			flags.needsJSON = true
+			if in.Zap {
+				flags.zap.NeedsZapcore = true
+			}
+			if in.Zerolog {
+				flags.zerolog.NeedsZerolog = true
+			}
+		}
+		if len(d.WrappedFields) > 0 {
+			flags.needsErrors = true
+		}
+		if d.Code != nil {
+			flags.needsHTTPStatus = true
+		}
+		for _, f := range d.Fields {
+			if f.ImportPath != "" && !seen[f.ImportPath] {
+				seen[f.ImportPath] = true
+				flags.imports = append(flags.imports, f.ImportPath)
+			}
+			if in.Zap && f.Type != "error" && zapEncoderMethod(f.Type) == "Any" { //nolint:goconst // sentinel returned by zapEncoderMethod
+				flags.zap.NeedsZap = true
+			}
+		}
+	}
+	// Source-package import only emitted when generating cross-package
+	if in.SrcImport != "" && !seen[in.SrcImport] {
+		flags.imports = append(flags.imports, in.SrcImport)
+	}
+	return flags
 }
 
 func buildErrorTypeName(errVarName string) string {
