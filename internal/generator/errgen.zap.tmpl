@@ -1,0 +1,18 @@
+{{define "zapMarshalLogObject" -}}
+// MarshalLogObject implements [zapcore.ObjectMarshaler] for zap structured logging
+func (e *{{.TypeName}}) MarshalLogObject(enc zapcore.ObjectEncoder) error {
+	enc.AddString("error", e.Error())
+{{- range .Fields}}
+{{- if eq .Type "error"}}
+	if e.{{.Name}} != nil {
+		enc.AddString("{{.NameLower}}", e.{{.Name}}.Error())
+	}
+{{- else if eq (zapMethod .Type) "Any"}}
+	zap.Any("{{.NameLower}}", e.{{.Name}}).AddTo(enc)
+{{- else}}
+	enc.{{zapMethod .Type}}("{{.NameLower}}", e.{{.Name}})
+{{- end}}
+{{- end}}
+	return nil
+}
+{{- end}}

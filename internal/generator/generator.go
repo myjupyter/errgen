@@ -17,6 +17,8 @@ var (
 	DefaultErrgenTemplate string
 	//go:embed errgen.hook.tmpl
 	DefaultErrgenHookTemplate string
+	//go:embed errgen.zap.tmpl
+	defaultErrgenZapTemplate string
 )
 
 type Generator struct {
@@ -27,9 +29,9 @@ type Generator struct {
 // to the right slog/zap constructor instead of using a generic slog.Any /
 // zap.Any for everything.
 var templateFuncs = template.FuncMap{
-	"zapMethod":    zapEncoderMethod,
-	"slogMethod":   slogConstructorMethod,
-	"slogValueOf":  slogValueExpr,
+	"zapMethod":   zapEncoderMethod,
+	"slogMethod":  slogConstructorMethod,
+	"slogValueOf": slogValueExpr,
 }
 
 func New(templateText string) (*Generator, error) {
@@ -40,6 +42,11 @@ func New(templateText string) (*Generator, error) {
 		Parse(templateText)
 	if err != nil {
 		return nil, model.NewGenInvalidTemplateError(templateName, err)
+	}
+	// Parse the zap template into the same tree so the main template can
+	// invoke it via {{template "marshalLogObject" .}} when -zap is enabled.
+	if _, err := temp.Parse(defaultErrgenZapTemplate); err != nil {
+		return nil, model.NewGenInvalidTemplateError("errgen.zap", err)
 	}
 	return &Generator{temp: temp}, nil
 }
