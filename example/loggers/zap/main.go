@@ -39,8 +39,6 @@ func main() {
 	err = fooErr()
 	var e *InternalError
 	if ok := errors.As(err, &e); ok {
-		// Generates log like:
-		// {"level":"error","ts":1777716527.866704,"caller":"zap/main.go:42","msg":"error message","error":{"error":"internal error","stringField":"string","int64Field":1,"intField":2,"uint64Field":3,"float64Field":3.14,"boolField":true,"timeField":1777716527.866702,"durationField":1,"intSliceField":[1,2,3],"objectSliceField":[],"mapType":{"key":"value"}}} //nolint:lll
 		log.Error("error message", zap.Object("error", e))
 	}
 
