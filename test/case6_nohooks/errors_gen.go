@@ -34,8 +34,8 @@ func (e *ApplicationError) Unwrap() error {
 func (e *ApplicationError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("error", e.Error()),
-		slog.Any("code", e.Code),
-		slog.Any("message", e.Message),
+		slog.Int("code", e.Code),
+		slog.String("message", e.Message),
 	)
 }
 

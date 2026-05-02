@@ -8,6 +8,8 @@ import "errors"
 // @Int64Field int64
 // @IntField int
 // @Uint64Field uint64
+// @UintField uint
+// @UintptrField uintptr
 // @Float64Field float64
 // @BoolField bool
 // @TimeField time.Time

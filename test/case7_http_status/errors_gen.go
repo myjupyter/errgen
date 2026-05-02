@@ -38,7 +38,7 @@ func (e *NotFoundError) StatusCode() int {
 func (e *NotFoundError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("error", e.Error()),
-		slog.Any("message", e.Message),
+		slog.String("message", e.Message),
 	)
 }
 
@@ -104,7 +104,7 @@ func (e *BadRequestError) StatusCode() int {
 func (e *BadRequestError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("error", e.Error()),
-		slog.Any("field", e.Field),
+		slog.String("field", e.Field),
 	)
 }
 
@@ -170,7 +170,7 @@ func (e *InternalError) StatusCode() int {
 func (e *InternalError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("error", e.Error()),
-		slog.Any("message", e.Message),
+		slog.String("message", e.Message),
 	)
 }
 
@@ -231,7 +231,7 @@ func (e *GenericError) Unwrap() error {
 func (e *GenericError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("error", e.Error()),
-		slog.Any("reason", e.Reason),
+		slog.String("reason", e.Reason),
 	)
 }
 

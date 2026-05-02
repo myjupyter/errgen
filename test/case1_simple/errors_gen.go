@@ -38,9 +38,9 @@ func (e *ApplicationError) Unwrap() error {
 func (e *ApplicationError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("error", e.Error()),
-		slog.Any("code", e.Code),
-		slog.Any("message", e.Message),
-		slog.Any("errTime", e.ErrTime),
+		slog.Int("code", e.Code),
+		slog.String("message", e.Message),
+		slog.Time("errTime", e.ErrTime),
 		slog.Any("ctx", e.Ctx),
 	)
 }
@@ -117,7 +117,7 @@ func (e *NotFoundError) Unwrap() error {
 func (e *NotFoundError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("error", e.Error()),
-		slog.Any("reason", e.Reason),
+		slog.String("reason", e.Reason),
 	)
 }
 
@@ -244,8 +244,8 @@ func (e *TimeoutError) Unwrap() error {
 func (e *TimeoutError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("error", e.Error()),
-		slog.Any("timeout", e.Timeout),
-		slog.Any("endpoint", e.Endpoint),
+		slog.Int("timeout", e.Timeout),
+		slog.String("endpoint", e.Endpoint),
 	)
 }
 
@@ -338,8 +338,8 @@ func (e *InvalidErrError) Unwrap() error {
 func (e *InvalidErrError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("error", e.Error()),
-		slog.Any("code", e.Code),
-		slog.Any("domain", e.Domain),
+		slog.Int("code", e.Code),
+		slog.String("domain", e.Domain),
 	)
 }
 

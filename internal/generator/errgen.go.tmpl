@@ -85,7 +85,7 @@ func (e *{{.TypeName}}) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("error", e.Error()),
 {{- range .Fields}}
-		slog.Any("{{.NameLower}}", e.{{.Name}}),
+		slog.{{slogMethod .Type}}("{{.NameLower}}", {{slogValueOf .Type .Name}}),
 {{- end}}
 	)
 }
@@ -151,10 +151,10 @@ func (e *{{.TypeName}}) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	if e.{{.Name}} != nil {
 		enc.AddString("{{.NameLower}}", e.{{.Name}}.Error())
 	}
-{{- else if eq .ZapMethod "Any"}}
+{{- else if eq (zapMethod .Type) "Any"}}
 	zap.Any("{{.NameLower}}", e.{{.Name}}).AddTo(enc)
 {{- else}}
-	enc.{{.ZapMethod}}("{{.NameLower}}", e.{{.Name}})
+	enc.{{zapMethod .Type}}("{{.NameLower}}", e.{{.Name}})
 {{- end}}
 {{- end}}
 	return nil

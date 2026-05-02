@@ -38,7 +38,7 @@ func (e *InternalError) StatusCode() int {
 func (e *InternalError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("error", e.Error()),
-		slog.Any("reason", e.Reason),
+		slog.String("reason", e.Reason),
 	)
 }
 

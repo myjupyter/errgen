@@ -33,7 +33,7 @@ func (e *HTTPError) Unwrap() error {
 func (e *HTTPError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("error", e.Error()),
-		slog.Any("statusCode", e.StatusCode),
+		slog.Int("statusCode", e.StatusCode),
 	)
 }
 
@@ -95,8 +95,8 @@ func (e *TimeoutError) Unwrap() error {
 func (e *TimeoutError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("error", e.Error()),
-		slog.Any("endpoint", e.Endpoint),
-		slog.Any("timeout", e.Timeout),
+		slog.String("endpoint", e.Endpoint),
+		slog.Int("timeout", e.Timeout),
 	)
 }
 

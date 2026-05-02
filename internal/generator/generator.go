@@ -23,10 +23,20 @@ type Generator struct {
 	temp *template.Template
 }
 
+// templateFuncs are exposed to the template so it can match Go field types
+// to the right slog/zap constructor instead of using a generic slog.Any /
+// zap.Any for everything.
+var templateFuncs = template.FuncMap{
+	"zapMethod":    zapEncoderMethod,
+	"slogMethod":   slogConstructorMethod,
+	"slogValueOf":  slogValueExpr,
+}
+
 func New(templateText string) (*Generator, error) {
 	const templateName = "errgen"
 	temp, err := template.
 		New(templateName).
+		Funcs(templateFuncs).
 		Parse(templateText)
 	if err != nil {
 		return nil, model.NewGenInvalidTemplateError(templateName, err)
@@ -95,6 +105,50 @@ func zapEncoderMethod(goType string) string {
 	}
 }
 
+// slogConstructorMethod returns the slog package constructor name for a given
+// Go field type (e.g. "Int", "String", "Time"). Returns "Any" for types without
+// a direct constructor — slog.Any handles them via reflection.
+func slogConstructorMethod(goType string) string {
+	switch goType {
+	case "bool":
+		return "Bool"
+	case "string":
+		return "String"
+	case "int":
+		return "Int"
+	case "int8", "int16", "int32", "int64":
+		return "Int64"
+	case "uint", "uint8", "uint16", "uint32", "uint64", "uintptr":
+		return "Uint64"
+	case "float32", "float64":
+		return "Float64"
+	case "time.Time":
+		return "Time"
+	case "time.Duration":
+		return "Duration"
+	default:
+		return "Any"
+	}
+}
+
+// slogValueExpr returns the value expression to pass to the slog constructor
+// for a field of the given type. Most types pass through as e.<Name>; widening
+// types (int8/16/32 -> int64, uint variants -> uint64, float32 -> float64)
+// require an explicit cast so the call resolves to the typed constructor.
+func slogValueExpr(goType, fieldName string) string {
+	base := "e." + fieldName
+	switch goType {
+	case "int8", "int16", "int32":
+		return "int64(" + base + ")"
+	case "uint", "uint8", "uint16", "uint32", "uintptr":
+		return "uint64(" + base + ")"
+	case "float32":
+		return "float64(" + base + ")"
+	default:
+		return base
+	}
+}
+
 // Generate renders Go source for the given error definitions
 func (g *Generator) Generate(in GenerateInput) ([]byte, error) {
 	var tmplDefs []errDefData
@@ -138,7 +192,7 @@ func (g *Generator) Generate(in GenerateInput) ([]byte, error) {
 				seen[f.ImportPath] = true
 				imports = append(imports, f.ImportPath)
 			}
-			if in.Zap && f.Type != "error" && f.ZapMethod == "Any" {
+			if in.Zap && f.Type != "error" && zapEncoderMethod(f.Type) == "Any" {
 				zapData.NeedsZap = true
 			}
 		}
@@ -195,7 +249,6 @@ func buildFieldsData(fields []*model.Field) []fieldData {
 			NameLower:  varNameLowered,
 			Type:       f.Type,
 			ImportPath: f.ImportPath,
-			ZapMethod:  zapEncoderMethod(f.Type),
 		})
 	}
 	return data

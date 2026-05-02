@@ -39,9 +39,4 @@ type fieldData struct {
 	NameLower  string
 	Type       string
 	ImportPath string
-	// ZapMethod is the zapcore.ObjectEncoder method name to call for this
-	// field (e.g. "AddInt", "AddString"). Empty when the field type has no
-	// direct encoder method and the template should fall back to zap.Any.
-	// Not used for error-typed fields, which the template handles inline.
-	ZapMethod string
 }
