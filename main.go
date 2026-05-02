@@ -48,6 +48,7 @@ type config struct { //nolint:govet // readability over alignment
 	dryRun         bool
 	noHooks        bool
 	stackTrace     bool
+	zap            bool
 	manualImports  importMapFlag
 }
 
@@ -70,6 +71,7 @@ func parseConfig() (*config, bool) {
 	showVersion := flag.Bool("v", false, "print version and exit")
 	noHooks := flag.Bool("no-hooks", false, "skip hook file generation")
 	stackTrace := flag.Bool("stack-trace", false, "capture stack trace in constructors via runtime.Callers")
+	zap := flag.Bool("zap", false, "generate zapcore.ObjectMarshaler implementation for use with go.uber.org/zap")
 
 	var manualImports importMapFlag
 	flag.Var(&manualImports, "m", "manual import mapping: pkg=import/path (repeatable, for ambiguous packages)")
@@ -98,6 +100,7 @@ func parseConfig() (*config, bool) {
 		dryRun:        *dryRun,
 		noHooks:       *noHooks,
 		stackTrace:    *stackTrace,
+		zap:           *zap,
 		manualImports: manualImports,
 	}
 
@@ -173,6 +176,7 @@ func run(cfg *config) error {
 		SrcImport:   srcImport,
 		NoHooks:     cfg.noHooks,
 		StackTrace:  cfg.stackTrace,
+		Zap:         cfg.zap,
 	}
 	if err := generateFile(templateText, cfg.outputPath, genInput, cfg.dryRun); err != nil {
 		return err

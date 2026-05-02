@@ -2,7 +2,7 @@
 
 package {{.PackageName}}
 
-{{- if or .NeedsFmt .NeedsSlog .NeedsJSON .NeedsErrors .NeedsHTTPStatus .StackTrace (gt (len .Imports) 0)}}
+{{- if or .NeedsFmt .NeedsSlog .NeedsJSON .NeedsErrors .NeedsHTTPStatus .StackTrace .Zap.NeedsZapcore .Zap.NeedsZap (gt (len .Imports) 0)}}
 
 import (
 {{- if .NeedsJSON}}
@@ -25,6 +25,13 @@ import (
 {{- end}}
 {{- range .Imports}}
 	"{{.}}"
+{{- end}}
+{{- if .Zap.NeedsZap}}
+
+	"go.uber.org/zap"
+{{- end}}
+{{- if .Zap.NeedsZapcore}}
+	"go.uber.org/zap/zapcore"
 {{- end}}
 )
 {{- end}}
@@ -76,8 +83,9 @@ func (e *{{.TypeName}}) StatusCode() int {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *{{.TypeName}}) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 {{- range .Fields}}
-		slog.Any("{{.NameLower}}", e.{{.Name}}),
+		slog.{{slogMethod .Type}}("{{.NameLower}}", {{slogValueOf .Type .Name}}),
 {{- end}}
 	)
 }
@@ -133,6 +141,10 @@ func (e *{{.TypeName}}) UnmarshalJSON(data []byte) error {
 {{- end}}
 	return nil
 }
+{{- if $.Zap.Enabled}}
+
+{{template "zapMarshalLogObject" .}}
+{{- end}}
 {{- end}}
 
 {{- if $.StackTrace}}

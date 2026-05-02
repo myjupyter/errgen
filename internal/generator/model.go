@@ -12,6 +12,14 @@ type templateData struct {
 	NeedsHTTPStatus bool
 	StackTrace      bool
 	NoHooks         bool
+	Zap             zapTemplateData
+}
+
+// zapTemplateData groups data used by the zap-related template sections
+type zapTemplateData struct {
+	Enabled      bool // -zap flag
+	NeedsZapcore bool // emit "go.uber.org/zap/zapcore" import
+	NeedsZap     bool // emit "go.uber.org/zap" import (only when zap.Any fallback is used)
 }
 
 // defData is per-error template data

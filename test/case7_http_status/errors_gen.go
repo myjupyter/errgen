@@ -37,7 +37,8 @@ func (e *NotFoundError) StatusCode() int {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *NotFoundError) LogValue() slog.Value {
 	return slog.GroupValue(
-		slog.Any("message", e.Message),
+		slog.String("error", e.Error()),
+		slog.String("message", e.Message),
 	)
 }
 
@@ -102,7 +103,8 @@ func (e *BadRequestError) StatusCode() int {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *BadRequestError) LogValue() slog.Value {
 	return slog.GroupValue(
-		slog.Any("field", e.Field),
+		slog.String("error", e.Error()),
+		slog.String("field", e.Field),
 	)
 }
 
@@ -167,7 +169,8 @@ func (e *InternalError) StatusCode() int {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *InternalError) LogValue() slog.Value {
 	return slog.GroupValue(
-		slog.Any("message", e.Message),
+		slog.String("error", e.Error()),
+		slog.String("message", e.Message),
 	)
 }
 
@@ -227,7 +230,8 @@ func (e *GenericError) Unwrap() error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *GenericError) LogValue() slog.Value {
 	return slog.GroupValue(
-		slog.Any("reason", e.Reason),
+		slog.String("error", e.Error()),
+		slog.String("reason", e.Reason),
 	)
 }
 

@@ -33,6 +33,7 @@ func (e *ConnectionError) Unwrap() error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *ConnectionError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("peer", e.Peer),
 	)
 }
@@ -93,6 +94,7 @@ func (e *AuthError) Unwrap() error {
 // LogValue implements [slog.LogValuer] for structured logging
 func (e *AuthError) LogValue() slog.Value {
 	return slog.GroupValue(
+		slog.String("error", e.Error()),
 		slog.Any("token", e.Token),
 	)
 }
