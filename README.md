@@ -480,13 +480,19 @@ Your custom logic is safe across regenerations:
 
 ### Stack traces (`-stack-trace`)
 
-Use the `-stack-trace` flag to capture the call stack in every constructor via `runtime.Callers`. Each error type gets a `stackPCs []uintptr` field and a `StackTrace() []uintptr` method:
+Use the `-stack-trace` flag to capture the call stack in every constructor via `runtime.Callers`. Each error type gets a `stackPCs []uintptr` field plus three accessors:
 
 ```go
 //go:generate go run github.com/myjupyter/errgen -stack-trace
 ```
 
-Generated:
+| Method                        | Returns                | Use                                                                |
+|-------------------------------|------------------------|--------------------------------------------------------------------|
+| `StackTrace() []uintptr`      | raw PCs                | hand off to your own frame resolver / profiler                     |
+| `StackFrames() []runtime.Frame` | resolved frames      | walk the stack programmatically (alerting, source-link decoration) |
+| `Format(s, verb)`             | implements `fmt.Formatter` | `%+v` prints the message followed by the captured stack       |
+
+Generated (abridged):
 
 ```go
 func NewHTTPError(statusCode int, message string) *HTTPError {
@@ -497,10 +503,27 @@ func NewHTTPError(statusCode int, message string) *HTTPError {
     return e
 }
 
-func (e *HTTPError) StackTrace() []uintptr { return e.stackPCs }
+func (e *HTTPError) StackTrace() []uintptr  { return e.stackPCs }
+func (e *HTTPError) StackFrames() []runtime.Frame { 
+  /* resolves PCs via runtime.CallersFrames */
+}
+func (e *HTTPError) Format(s fmt.State, verb rune) {
+  /* %+v prints stack, %v / %s / %q just the message */
+}
 ```
 
-Opt-in only - zero cost when the flag is not set. Use `runtime.CallersFrames(err.StackTrace())` to iterate frames.
+Usage:
+
+```go
+err := NewHTTPError(500, "boom")
+
+fmt.Printf("%v\n", err)   // boom
+fmt.Printf("%+v\n", err)  // boom + stack trace, function/file:line per frame
+
+for _, f := range err.StackFrames() {
+    fmt.Printf("%s\n\t%s:%d\n", f.Function, f.File, f.Line)
+}
+```
 
 ## Example
 
@@ -512,6 +535,7 @@ Runnable examples live in [`example/`](example/):
 - [`example/loggers/zerolog`](example/loggers/zerolog/) — structured logging with `github.com/rs/zerolog`
 - [`example/loggers/logrus`](example/loggers/logrus/) — structured logging with `github.com/sirupsen/logrus`
 - [`example/otel`](example/otel/) — span attributes with OpenTelemetry
+- [`example/stacktrace`](example/stacktrace/) — captured call stacks via `-stack-trace`, `%+v` formatting, and `StackFrames()` walks
 
 ## License
 

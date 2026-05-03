@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"runtime"
 )
@@ -69,9 +70,45 @@ func (e *ApplicationError) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// StackTrace returns the call stack captured when the error was created
+// StackTrace returns the raw program counters captured when the error was created
 func (e *ApplicationError) StackTrace() []uintptr {
 	return e.stackPCs
+}
+
+// StackFrames resolves the captured program counters into runtime.Frame values
+func (e *ApplicationError) StackFrames() []runtime.Frame {
+	if len(e.stackPCs) == 0 {
+		return nil
+	}
+	frames := runtime.CallersFrames(e.stackPCs)
+	out := make([]runtime.Frame, 0, len(e.stackPCs))
+	for {
+		frame, more := frames.Next()
+		out = append(out, frame)
+		if !more {
+			break
+		}
+	}
+	return out
+}
+
+// Format implements [fmt.Formatter]. %+v includes the captured stack trace.
+func (e *ApplicationError) Format(s fmt.State, verb rune) {
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			_, _ = io.WriteString(s, e.Error())
+			for _, f := range e.StackFrames() {
+				_, _ = fmt.Fprintf(s, "\n%s\n\t%s:%d", f.Function, f.File, f.Line)
+			}
+			return
+		}
+		fallthrough
+	case 's':
+		_, _ = io.WriteString(s, e.Error())
+	case 'q':
+		_, _ = fmt.Fprintf(s, "%q", e.Error())
+	}
 }
 
 // NewApplicationError creates a new ApplicationError
@@ -144,9 +181,45 @@ func (e *InternalError) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// StackTrace returns the call stack captured when the error was created
+// StackTrace returns the raw program counters captured when the error was created
 func (e *InternalError) StackTrace() []uintptr {
 	return e.stackPCs
+}
+
+// StackFrames resolves the captured program counters into runtime.Frame values
+func (e *InternalError) StackFrames() []runtime.Frame {
+	if len(e.stackPCs) == 0 {
+		return nil
+	}
+	frames := runtime.CallersFrames(e.stackPCs)
+	out := make([]runtime.Frame, 0, len(e.stackPCs))
+	for {
+		frame, more := frames.Next()
+		out = append(out, frame)
+		if !more {
+			break
+		}
+	}
+	return out
+}
+
+// Format implements [fmt.Formatter]. %+v includes the captured stack trace.
+func (e *InternalError) Format(s fmt.State, verb rune) {
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			_, _ = io.WriteString(s, e.Error())
+			for _, f := range e.StackFrames() {
+				_, _ = fmt.Fprintf(s, "\n%s\n\t%s:%d", f.Function, f.File, f.Line)
+			}
+			return
+		}
+		fallthrough
+	case 's':
+		_, _ = io.WriteString(s, e.Error())
+	case 'q':
+		_, _ = fmt.Fprintf(s, "%q", e.Error())
+	}
 }
 
 // NewInternalError creates a new InternalError
@@ -181,9 +254,45 @@ func (e *ForbiddenError) Unwrap() error {
 	return ErrForbidden
 }
 
-// StackTrace returns the call stack captured when the error was created
+// StackTrace returns the raw program counters captured when the error was created
 func (e *ForbiddenError) StackTrace() []uintptr {
 	return e.stackPCs
+}
+
+// StackFrames resolves the captured program counters into runtime.Frame values
+func (e *ForbiddenError) StackFrames() []runtime.Frame {
+	if len(e.stackPCs) == 0 {
+		return nil
+	}
+	frames := runtime.CallersFrames(e.stackPCs)
+	out := make([]runtime.Frame, 0, len(e.stackPCs))
+	for {
+		frame, more := frames.Next()
+		out = append(out, frame)
+		if !more {
+			break
+		}
+	}
+	return out
+}
+
+// Format implements [fmt.Formatter]. %+v includes the captured stack trace.
+func (e *ForbiddenError) Format(s fmt.State, verb rune) {
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			_, _ = io.WriteString(s, e.Error())
+			for _, f := range e.StackFrames() {
+				_, _ = fmt.Fprintf(s, "\n%s\n\t%s:%d", f.Function, f.File, f.Line)
+			}
+			return
+		}
+		fallthrough
+	case 's':
+		_, _ = io.WriteString(s, e.Error())
+	case 'q':
+		_, _ = fmt.Fprintf(s, "%q", e.Error())
+	}
 }
 
 // NewForbiddenError creates a new ForbiddenError

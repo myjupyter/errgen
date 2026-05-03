@@ -1,0 +1,52 @@
+{{define "stackTraceField" -}}
+	stackPCs []uintptr
+{{- end}}
+
+{{define "stackTraceCapture" -}}
+	var pcs [32]uintptr
+	n := runtime.Callers(2, pcs[:])
+	e.stackPCs = pcs[:n]
+{{- end}}
+
+{{define "stackTraceMethods" -}}
+// StackTrace returns the raw program counters captured when the error was created
+func (e *{{.TypeName}}) StackTrace() []uintptr {
+	return e.stackPCs
+}
+
+// StackFrames resolves the captured program counters into runtime.Frame values
+func (e *{{.TypeName}}) StackFrames() []runtime.Frame {
+	if len(e.stackPCs) == 0 {
+		return nil
+	}
+	frames := runtime.CallersFrames(e.stackPCs)
+	out := make([]runtime.Frame, 0, len(e.stackPCs))
+	for {
+		frame, more := frames.Next()
+		out = append(out, frame)
+		if !more {
+			break
+		}
+	}
+	return out
+}
+
+// Format implements [fmt.Formatter]. %+v includes the captured stack trace.
+func (e *{{.TypeName}}) Format(s fmt.State, verb rune) {
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			_, _ = io.WriteString(s, e.Error())
+			for _, f := range e.StackFrames() {
+				_, _ = fmt.Fprintf(s, "\n%s\n\t%s:%d", f.Function, f.File, f.Line)
+			}
+			return
+		}
+		fallthrough
+	case 's':
+		_, _ = io.WriteString(s, e.Error())
+	case 'q':
+		_, _ = fmt.Fprintf(s, "%q", e.Error())
+	}
+}
+{{- end}}

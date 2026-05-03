@@ -20,6 +20,14 @@ test: build
 	@go build $(PWD)/test/...
 	@echo "All test cases passed without errors"
 
+.PHONY: examples
+examples: build
+	@find $(PWD)/example -name go.mod | while read modfile; do \
+	  dir=$$(dirname $$modfile); \
+	  echo "==> $$dir"; \
+	  (cd $$dir && go generate ./... && go build ./...) || exit 1; \
+	done
+
 .PHONY: clean
 clean:
 	@rm -rf $(BINPATH)
