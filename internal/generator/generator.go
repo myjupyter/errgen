@@ -25,6 +25,8 @@ var (
 	defaultErrgenOTelTemplate string
 	//go:embed errgen.logrus.tmpl
 	defaultErrgenLogrusTemplate string
+	//go:embed errgen.stacktrace.tmpl
+	defaultErrgenStackTraceTemplate string
 )
 
 type Generator struct {
@@ -56,10 +58,11 @@ func New(templateText string) (*Generator, error) {
 	}
 
 	extraTemplates := map[string]string{
-		"errgen.zap":     defaultErrgenZapTemplate,
-		"errgen.zerolog": defaultErrgenZerologTemplate,
-		"errgen.otel":    defaultErrgenOTelTemplate,
-		"errgen.logrus":  defaultErrgenLogrusTemplate,
+		"errgen.zap":        defaultErrgenZapTemplate,
+		"errgen.zerolog":    defaultErrgenZerologTemplate,
+		"errgen.otel":       defaultErrgenOTelTemplate,
+		"errgen.logrus":     defaultErrgenLogrusTemplate,
+		"errgen.stacktrace": defaultErrgenStackTraceTemplate,
 	}
 	for name, text := range extraTemplates {
 		if _, err := temp.Parse(text); err != nil {

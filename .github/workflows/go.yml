@@ -24,6 +24,16 @@ jobs:
       - name: Build
         run: go build -v ./...
 
+      - name: Build example sub-modules
+        run: make examples
+
+      - name: Verify example generated files are up to date
+        run: |
+          if ! git diff --exit-code example/; then
+            echo "::error::example/ generated files differ from committed output. Run 'make examples' and commit the diff."
+            exit 1
+          fi
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
