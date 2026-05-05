@@ -190,6 +190,14 @@ func aggregateImportFlags(defs []errDefData, in GenerateInput) importFlags { //n
 			seen[d.Code.ImportPath] = true
 			flags.imports = append(flags.imports, d.Code.ImportPath)
 		}
+		if len(d.Iss) > 0 {
+			for _, iss := range d.Iss {
+				if iss.ImportPath != "" && !seen[iss.ImportPath] {
+					seen[iss.ImportPath] = true
+					flags.imports = append(flags.imports, iss.ImportPath)
+				}
+			}
+		}
 		for _, f := range d.Fields {
 			if f.ImportPath != "" && !seen[f.ImportPath] {
 				seen[f.ImportPath] = true
@@ -273,6 +281,14 @@ func buildDefData(def model.ErrDef) (errDefData, error) {
 		code = &codeData{Expr: def.Code.Expr, ImportPath: def.Code.ImportPath}
 	}
 
+	var iss []isData
+	if len(def.Iss) > 0 {
+		iss = make([]isData, len(def.Iss))
+		for i, is := range def.Iss {
+			iss[i] = isData{Expr: is.Expr, ImportPath: is.ImportPath}
+		}
+	}
+
 	return errDefData{
 		TypeName:        typeName,
 		VarName:         def.Name,
@@ -281,6 +297,7 @@ func buildDefData(def model.ErrDef) (errDefData, error) {
 		ConstructorArgs: constructorArgs,
 		WrappedFields:   wrappedFields,
 		Code:            code,
+		Iss:             iss,
 	}, nil
 }
 

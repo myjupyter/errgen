@@ -214,6 +214,11 @@ func resolveImports(fileInfo *model.FileInfo, manualImports importMapFlag, input
 		if def.Code != nil {
 			qualified = append(qualified, def.Code.Expr)
 		}
+		if len(def.Iss) > 0 {
+			for j := range def.Iss {
+				qualified = append(qualified, def.Iss[j].Expr)
+			}
+		}
 	}
 
 	pkgNames := resolver.ExtractPackageNames(qualified)
@@ -258,6 +263,14 @@ func resolveImports(fileInfo *model.FileInfo, manualImports importMapFlag, input
 			pkgName := resolver.ExtractPkgName(fileInfo.ErrDefs[i].Code.Expr)
 			if pkgName != "" {
 				fileInfo.ErrDefs[i].Code.ImportPath = resolved[pkgName]
+			}
+		}
+		if len(fileInfo.ErrDefs[i].Iss) > 0 {
+			for j := range fileInfo.ErrDefs[i].Iss {
+				pkgName := resolver.ExtractPkgName(fileInfo.ErrDefs[i].Iss[j].Expr)
+				if pkgName != "" {
+					fileInfo.ErrDefs[i].Iss[j].ImportPath = resolved[pkgName]
+				}
 			}
 		}
 	}

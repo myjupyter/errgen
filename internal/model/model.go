@@ -15,9 +15,15 @@ type CodeDef struct {
 	ImportPath string
 }
 
+type IsDef struct {
+	Expr       string
+	ImportPath string
+}
+
 type ErrDef struct { //nolint:govet // readability over alignment
 	Name        string
 	Fields      []*Field
+	Iss         []IsDef
 	ErrorFormat *string
 	Code        *CodeDef // nil when no @Code annotation is present
 }

@@ -142,9 +142,11 @@ func parseAnnotations(comments []*ast.Comment) (*model.ErrDef, error) {
 
 // parseAnnotation parses a single annotation line like:
 //
-//	@Code int
-//	@Message string
-//	@Error("code: %Code, message: %Message")
+// @Code int
+// @Code(500)
+// @Is(ErrNotFound)
+// @Message string
+// @Error("code: %Code, message: %Message")
 func parseAnnotation(text string, def *model.ErrDef) error {
 	// @Error("...") — format annotation
 	if strings.HasPrefix(text, "@Error(") {
@@ -166,6 +168,19 @@ func parseAnnotation(text string, def *model.ErrDef) error {
 		return nil
 	}
 
+	// @Is(...) - error code binding annotation
+	if strings.HasPrefix(text, "@Is(") {
+		expr, err := parseIsAnnotation(text)
+		if err != nil {
+			return err
+		}
+
+		def.Iss = append(def.Iss, model.IsDef{
+			Expr: expr,
+		})
+		return nil
+	}
+
 	// @Name Type — field declaration
 	field, err := parseVarAnnotation(text)
 	if err != nil {
@@ -176,11 +191,7 @@ func parseAnnotation(text string, def *model.ErrDef) error {
 	return nil
 }
 
-// parseCodeAnnotation extracts the code expression from @Code(...). The inner
-// expression must be either an int literal (e.g. 404, -1, 0x1F4) or a Go
-// identifier / qualified identifier (e.g. http.StatusNotFound, MyConst).
-// More complex expressions are rejected to keep the contract narrow — users
-// who need them can declare a named constant in their package and reference it.
+// parseCodeAnnotation extracts the code expression from @Code(...)
 func parseCodeAnnotation(text string) (string, error) {
 	inner := strings.TrimPrefix(text, "@Code(")
 	expr := strings.TrimSuffix(strings.TrimSpace(inner), ")")
@@ -207,6 +218,17 @@ func parseErrorAnnotation(text string) (string, error) {
 		return "", model.NewParsingInvalidErrorAnnotationError(text)
 	}
 	return strings.Trim(inner, `"`), nil
+}
+
+// parseIsAnnotation extracts the code expression from @Is(...)
+func parseIsAnnotation(text string) (string, error) {
+	inner := strings.TrimPrefix(text, "@Is(")
+	expr := strings.TrimSuffix(strings.TrimSpace(inner), ")")
+	expr = strings.TrimSpace(expr)
+	if expr == "" || !codeExprRegex.MatchString(expr) {
+		return "", model.NewParsingInvalidCodeAnnotationError(text)
+	}
+	return expr, nil
 }
 
 // regexp for parseVarAnnotation

@@ -47,6 +47,7 @@ type errDefData struct { //nolint:govet // readability over alignment
 	TypeName        string
 	VarName         string
 	Fields          []fieldData
+	Iss             []isData
 	ErrorFormat     *string
 	FmtString       string
 	ConstructorArgs string
@@ -58,6 +59,12 @@ type errDefData struct { //nolint:govet // readability over alignment
 type codeData struct {
 	Expr       string // raw expression as written: "404", "http.StatusNotFound", ...
 	ImportPath string // resolved import path of the package referenced by Expr
+}
+
+// isData is the per-error template view of a parsed @Is(...) annotation
+type isData struct {
+	Expr       string
+	ImportPath string
 }
 
 type fieldData struct {
