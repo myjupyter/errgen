@@ -21,7 +21,7 @@ type Resolver struct {
 func New(dir string) (*Resolver, error) {
 	absDir, err := filepath.Abs(dir)
 	if err != nil {
-		return nil, model.NewResolvingError(err)
+		return nil, model.NewResolverInternalError(err)
 	}
 
 	moduleDir, modulePath, err := findModule(absDir)
@@ -86,7 +86,7 @@ func (r *Resolver) Resolve(pkgNames []string) (map[string]string, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, model.NewResolvingError(err)
+		return nil, model.NewResolverInternalError(err)
 	}
 
 	// Try to find built-in packages match
@@ -175,7 +175,7 @@ func dirPackageName(dir string) (string, error) {
 func ImportPathForDir(dir string) (string, error) {
 	absDir, err := filepath.Abs(dir)
 	if err != nil {
-		return "", model.NewResolvingError(err)
+		return "", model.NewResolverInternalError(err)
 	}
 	moduleDir, modulePath, err := findModule(absDir)
 	if err != nil {
@@ -183,7 +183,7 @@ func ImportPathForDir(dir string) (string, error) {
 	}
 	rel, err := filepath.Rel(moduleDir, absDir)
 	if err != nil {
-		return "", model.NewResolvingError(err)
+		return "", model.NewResolverInternalError(err)
 	}
 	if rel == "." {
 		return modulePath, nil

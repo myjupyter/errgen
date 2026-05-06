@@ -9,201 +9,6 @@ import (
 	"log/slog"
 )
 
-// ParsingError is a rich error type wrapping [ErrParsing]
-type ParsingError struct {
-	WrappedError error
-}
-
-// Error implements the error interface
-func (e *ParsingError) Error() string {
-	return fmt.Sprintf("parsing: %v", e.WrappedError)
-}
-
-// Is reports whether the target matches [ErrParsing]
-func (e *ParsingError) Is(target error) bool {
-	return target == ErrParsing
-}
-
-// Unwrap returns the underlying error(s)
-func (e *ParsingError) Unwrap() []error {
-	return []error{e.WrappedError, ErrParsing}
-}
-
-// LogValue implements [slog.LogValuer] for structured logging
-func (e *ParsingError) LogValue() slog.Value {
-	return slog.GroupValue(
-		slog.String("error", e.Error()),
-		slog.Any("wrappedError", e.WrappedError),
-	)
-}
-
-// MarshalJSON implements [json.Marshaler]
-func (e *ParsingError) MarshalJSON() ([]byte, error) {
-	type jsonError struct {
-		Error        string `json:"error"`
-		WrappedError string `json:"wrappedError,omitempty"`
-	}
-	d := jsonError{Error: e.Error()}
-	if e.WrappedError != nil {
-		d.WrappedError = e.WrappedError.Error()
-	}
-	return json.Marshal(d)
-}
-
-// UnmarshalJSON implements [json.Unmarshaler]
-func (e *ParsingError) UnmarshalJSON(data []byte) error {
-	type jsonError struct {
-		WrappedError string `json:"wrappedError"`
-	}
-	var d jsonError
-	if err := json.Unmarshal(data, &d); err != nil {
-		return err
-	}
-	if d.WrappedError != "" {
-		e.WrappedError = errors.New(d.WrappedError)
-	}
-	return nil
-}
-
-// NewParsingError creates a new ParsingError
-func NewParsingError(wrappedError error) *ParsingError {
-	e := &ParsingError{
-		WrappedError: wrappedError,
-	}
-	e.onCreate()
-	return e
-}
-
-// GenerationError is a rich error type wrapping [ErrGeneration]
-type GenerationError struct {
-	WrappedError error
-}
-
-// Error implements the error interface
-func (e *GenerationError) Error() string {
-	return fmt.Sprintf("generator: %v", e.WrappedError)
-}
-
-// Is reports whether the target matches [ErrGeneration]
-func (e *GenerationError) Is(target error) bool {
-	return target == ErrGeneration
-}
-
-// Unwrap returns the underlying error(s)
-func (e *GenerationError) Unwrap() []error {
-	return []error{e.WrappedError, ErrGeneration}
-}
-
-// LogValue implements [slog.LogValuer] for structured logging
-func (e *GenerationError) LogValue() slog.Value {
-	return slog.GroupValue(
-		slog.String("error", e.Error()),
-		slog.Any("wrappedError", e.WrappedError),
-	)
-}
-
-// MarshalJSON implements [json.Marshaler]
-func (e *GenerationError) MarshalJSON() ([]byte, error) {
-	type jsonError struct {
-		Error        string `json:"error"`
-		WrappedError string `json:"wrappedError,omitempty"`
-	}
-	d := jsonError{Error: e.Error()}
-	if e.WrappedError != nil {
-		d.WrappedError = e.WrappedError.Error()
-	}
-	return json.Marshal(d)
-}
-
-// UnmarshalJSON implements [json.Unmarshaler]
-func (e *GenerationError) UnmarshalJSON(data []byte) error {
-	type jsonError struct {
-		WrappedError string `json:"wrappedError"`
-	}
-	var d jsonError
-	if err := json.Unmarshal(data, &d); err != nil {
-		return err
-	}
-	if d.WrappedError != "" {
-		e.WrappedError = errors.New(d.WrappedError)
-	}
-	return nil
-}
-
-// NewGenerationError creates a new GenerationError
-func NewGenerationError(wrappedError error) *GenerationError {
-	e := &GenerationError{
-		WrappedError: wrappedError,
-	}
-	e.onCreate()
-	return e
-}
-
-// ResolvingError is a rich error type wrapping [ErrResolving]
-type ResolvingError struct {
-	WrappedError error
-}
-
-// Error implements the error interface
-func (e *ResolvingError) Error() string {
-	return fmt.Sprintf("resolver: %v", e.WrappedError)
-}
-
-// Is reports whether the target matches [ErrResolving]
-func (e *ResolvingError) Is(target error) bool {
-	return target == ErrResolving
-}
-
-// Unwrap returns the underlying error(s)
-func (e *ResolvingError) Unwrap() []error {
-	return []error{e.WrappedError, ErrResolving}
-}
-
-// LogValue implements [slog.LogValuer] for structured logging
-func (e *ResolvingError) LogValue() slog.Value {
-	return slog.GroupValue(
-		slog.String("error", e.Error()),
-		slog.Any("wrappedError", e.WrappedError),
-	)
-}
-
-// MarshalJSON implements [json.Marshaler]
-func (e *ResolvingError) MarshalJSON() ([]byte, error) {
-	type jsonError struct {
-		Error        string `json:"error"`
-		WrappedError string `json:"wrappedError,omitempty"`
-	}
-	d := jsonError{Error: e.Error()}
-	if e.WrappedError != nil {
-		d.WrappedError = e.WrappedError.Error()
-	}
-	return json.Marshal(d)
-}
-
-// UnmarshalJSON implements [json.Unmarshaler]
-func (e *ResolvingError) UnmarshalJSON(data []byte) error {
-	type jsonError struct {
-		WrappedError string `json:"wrappedError"`
-	}
-	var d jsonError
-	if err := json.Unmarshal(data, &d); err != nil {
-		return err
-	}
-	if d.WrappedError != "" {
-		e.WrappedError = errors.New(d.WrappedError)
-	}
-	return nil
-}
-
-// NewResolvingError creates a new ResolvingError
-func NewResolvingError(wrappedError error) *ResolvingError {
-	e := &ResolvingError{
-		WrappedError: wrappedError,
-	}
-	e.onCreate()
-	return e
-}
-
 // ParsingAnnotationError is a rich error type wrapping [ErrParsingAnnotation]
 type ParsingAnnotationError struct {
 	ErrVarName   string
@@ -217,7 +22,7 @@ func (e *ParsingAnnotationError) Error() string {
 
 // Is reports whether the target matches [ErrParsingAnnotation]
 func (e *ParsingAnnotationError) Is(target error) bool {
-	return target == ErrParsingAnnotation
+	return target == ErrParsingAnnotation || target == ErrParsing
 }
 
 // Unwrap returns the underlying error(s)
@@ -289,7 +94,7 @@ func (e *ParsingFileError) Error() string {
 
 // Is reports whether the target matches [ErrParsingFile]
 func (e *ParsingFileError) Is(target error) bool {
-	return target == ErrParsingFile
+	return target == ErrParsingFile || target == ErrParsing
 }
 
 // Unwrap returns the underlying error(s)
@@ -360,7 +165,7 @@ func (e *ParsingInvalidErrorAnnotationError) Error() string {
 
 // Is reports whether the target matches [ErrParsingInvalidErrorAnnotation]
 func (e *ParsingInvalidErrorAnnotationError) Is(target error) bool {
-	return target == ErrParsingInvalidErrorAnnotation
+	return target == ErrParsingInvalidErrorAnnotation || target == ErrParsing
 }
 
 // Unwrap returns the underlying error(s)
@@ -422,7 +227,7 @@ func (e *ParsingInvalidVarAnnotationError) Error() string {
 
 // Is reports whether the target matches [ErrParsingInvalidVarAnnotation]
 func (e *ParsingInvalidVarAnnotationError) Is(target error) bool {
-	return target == ErrParsingInvalidVarAnnotation
+	return target == ErrParsingInvalidVarAnnotation || target == ErrParsing
 }
 
 // Unwrap returns the underlying error(s)
@@ -489,7 +294,7 @@ func (e *ParsingInvalidCodeAnnotationError) Error() string {
 
 // Is reports whether the target matches [ErrParsingInvalidCodeAnnotation]
 func (e *ParsingInvalidCodeAnnotationError) Is(target error) bool {
-	return target == ErrParsingInvalidCodeAnnotation
+	return target == ErrParsingInvalidCodeAnnotation || target == ErrParsing
 }
 
 // Unwrap returns the underlying error(s)
@@ -538,6 +343,67 @@ func NewParsingInvalidCodeAnnotationError(invalidAnnotationText string) *Parsing
 	return e
 }
 
+// ParsingInvalidIsAnnotationError is a rich error type wrapping [ErrParsingInvalidIsAnnotation]
+type ParsingInvalidIsAnnotationError struct {
+	InvalidAnnotationText string
+}
+
+// Error implements the error interface
+func (e *ParsingInvalidIsAnnotationError) Error() string {
+	return fmt.Sprintf("invalid is annotation '%v': expected an error identifier like ErrNotFound or pkg.ErrNotFound", e.InvalidAnnotationText)
+}
+
+// Is reports whether the target matches [ErrParsingInvalidIsAnnotation]
+func (e *ParsingInvalidIsAnnotationError) Is(target error) bool {
+	return target == ErrParsingInvalidIsAnnotation || target == ErrParsing
+}
+
+// Unwrap returns the underlying error(s)
+func (e *ParsingInvalidIsAnnotationError) Unwrap() error {
+	return ErrParsingInvalidIsAnnotation
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *ParsingInvalidIsAnnotationError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.String("error", e.Error()),
+		slog.String("invalidAnnotationText", e.InvalidAnnotationText),
+	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *ParsingInvalidIsAnnotationError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error                 string `json:"error"`
+		InvalidAnnotationText string `json:"invalidAnnotationText"`
+	}
+	d := jsonError{Error: e.Error()}
+	d.InvalidAnnotationText = e.InvalidAnnotationText
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *ParsingInvalidIsAnnotationError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		InvalidAnnotationText string `json:"invalidAnnotationText"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	e.InvalidAnnotationText = d.InvalidAnnotationText
+	return nil
+}
+
+// NewParsingInvalidIsAnnotationError creates a new ParsingInvalidIsAnnotationError
+func NewParsingInvalidIsAnnotationError(invalidAnnotationText string) *ParsingInvalidIsAnnotationError {
+	e := &ParsingInvalidIsAnnotationError{
+		InvalidAnnotationText: invalidAnnotationText,
+	}
+	e.onCreate()
+	return e
+}
+
 // GenInvalidTemplateError is a rich error type wrapping [ErrGenInvalidTemplate]
 type GenInvalidTemplateError struct {
 	TemplateName string
@@ -551,7 +417,7 @@ func (e *GenInvalidTemplateError) Error() string {
 
 // Is reports whether the target matches [ErrGenInvalidTemplate]
 func (e *GenInvalidTemplateError) Is(target error) bool {
-	return target == ErrGenInvalidTemplate
+	return target == ErrGenInvalidTemplate || target == ErrGeneration
 }
 
 // Unwrap returns the underlying error(s)
@@ -622,7 +488,7 @@ func (e *GenTemplateExecError) Error() string {
 
 // Is reports whether the target matches [ErrGenTemplateExec]
 func (e *GenTemplateExecError) Is(target error) bool {
-	return target == ErrGenTemplateExec
+	return target == ErrGenTemplateExec || target == ErrGeneration
 }
 
 // Unwrap returns the underlying error(s)
@@ -687,7 +553,7 @@ func (e *GenCodeFormattingError) Error() string {
 
 // Is reports whether the target matches [ErrGenCodeFormatting]
 func (e *GenCodeFormattingError) Is(target error) bool {
-	return target == ErrGenCodeFormatting
+	return target == ErrGenCodeFormatting || target == ErrGeneration
 }
 
 // Unwrap returns the underlying error(s)
@@ -752,7 +618,7 @@ func (e *GenUnknownFieldError) Error() string {
 
 // Is reports whether the target matches [ErrGenUnknownField]
 func (e *GenUnknownFieldError) Is(target error) bool {
-	return target == ErrGenUnknownField
+	return target == ErrGenUnknownField || target == ErrGeneration
 }
 
 // Unwrap returns the underlying error(s)
@@ -814,7 +680,7 @@ func (e *GenErrDefError) Error() string {
 
 // Is reports whether the target matches [ErrGenErrDef]
 func (e *GenErrDefError) Is(target error) bool {
-	return target == ErrGenErrDef
+	return target == ErrGenErrDef || target == ErrGeneration
 }
 
 // Unwrap returns the underlying error(s)
@@ -886,7 +752,7 @@ func (e *PackageNotFoundError) Error() string {
 
 // Is reports whether the target matches [ErrPackageNotFound]
 func (e *PackageNotFoundError) Is(target error) bool {
-	return target == ErrPackageNotFound
+	return target == ErrPackageNotFound || target == ErrResolving
 }
 
 // Unwrap returns the underlying error(s)
@@ -954,7 +820,7 @@ func (e *AmbiguousPackageError) Error() string {
 
 // Is reports whether the target matches [ErrAmbiguousPackage]
 func (e *AmbiguousPackageError) Is(target error) bool {
-	return target == ErrAmbiguousPackage
+	return target == ErrAmbiguousPackage || target == ErrResolving
 }
 
 // Unwrap returns the underlying error(s)
@@ -1020,7 +886,7 @@ func (e *GoModNotFoundError) Error() string {
 
 // Is reports whether the target matches [ErrGoModNotFound]
 func (e *GoModNotFoundError) Is(target error) bool {
-	return target == ErrGoModNotFound
+	return target == ErrGoModNotFound || target == ErrResolving
 }
 
 // Unwrap returns the underlying error(s)
@@ -1046,7 +912,7 @@ func (e *NoModuleDirectiveError) Error() string {
 
 // Is reports whether the target matches [ErrNoModuleDirective]
 func (e *NoModuleDirectiveError) Is(target error) bool {
-	return target == ErrNoModuleDirective
+	return target == ErrNoModuleDirective || target == ErrResolving
 }
 
 // Unwrap returns the underlying error(s)
@@ -1057,6 +923,71 @@ func (e *NoModuleDirectiveError) Unwrap() error {
 // NewNoModuleDirectiveError creates a new NoModuleDirectiveError
 func NewNoModuleDirectiveError() *NoModuleDirectiveError {
 	e := &NoModuleDirectiveError{}
+	e.onCreate()
+	return e
+}
+
+// ResolverInternalError is a rich error type wrapping [ErrResolverInternal]
+type ResolverInternalError struct {
+	WrappedError error
+}
+
+// Error implements the error interface
+func (e *ResolverInternalError) Error() string {
+	return fmt.Sprintf("resolver: %v", e.WrappedError)
+}
+
+// Is reports whether the target matches [ErrResolverInternal]
+func (e *ResolverInternalError) Is(target error) bool {
+	return target == ErrResolverInternal || target == ErrResolving
+}
+
+// Unwrap returns the underlying error(s)
+func (e *ResolverInternalError) Unwrap() []error {
+	return []error{e.WrappedError, ErrResolverInternal}
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *ResolverInternalError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.String("error", e.Error()),
+		slog.Any("wrappedError", e.WrappedError),
+	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *ResolverInternalError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error        string `json:"error"`
+		WrappedError string `json:"wrappedError,omitempty"`
+	}
+	d := jsonError{Error: e.Error()}
+	if e.WrappedError != nil {
+		d.WrappedError = e.WrappedError.Error()
+	}
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *ResolverInternalError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		WrappedError string `json:"wrappedError"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	if d.WrappedError != "" {
+		e.WrappedError = errors.New(d.WrappedError)
+	}
+	return nil
+}
+
+// NewResolverInternalError creates a new ResolverInternalError
+func NewResolverInternalError(wrappedError error) *ResolverInternalError {
+	e := &ResolverInternalError{
+		WrappedError: wrappedError,
+	}
 	e.onCreate()
 	return e
 }
