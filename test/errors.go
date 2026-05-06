@@ -8,7 +8,7 @@ var ErrInternal = errors.New("internal error")
 
 // @Domain string
 // @Tags []string
-// @Is(ErrInternal)
 // @Cause error
+// @Is(ErrInternal)
 // @Error("internal: service unavailable: [domain=\"%Domain\", tags=%Tags]; cause: %Cause")
 var ErrServiceUnavailable = errors.New("service unavailable")

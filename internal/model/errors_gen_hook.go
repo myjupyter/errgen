@@ -92,3 +92,9 @@ func (e *ParsingInvalidCodeAnnotationError) onCreate() {
 func (e *ParsingInvalidIsAnnotationError) onCreate() {
 	// put custom logic here
 }
+
+// onCreate is a hook for user custom logic
+// the code inside must not panic
+func (e *ResolverInternalError) onCreate() {
+	// put custom logic here
+}

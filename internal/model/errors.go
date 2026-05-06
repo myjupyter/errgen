@@ -23,13 +23,16 @@ var (
 	// @Error("file '%Filename': %WrappedError")
 	ErrParsingFile = errors.New("parsing file error")
 	// @InvalidAnnotationText string
+	// @Is(ErrParsing)
 	// @Error("invalid error annotation '%InvalidAnnotationText': expected: @Error(\"...\")")
 	ErrParsingInvalidErrorAnnotation = errors.New("invalid error annotation")
 	// @InvalidAnnotationText string
 	// @Message string
+	// @Is(ErrParsing)
 	// @Error("invalid var annotation '%InvalidAnnotationText': %Message")
 	ErrParsingInvalidVarAnnotation = errors.New("invalid var annotation")
 	// @InvalidAnnotationText string
+	// @Is(ErrParsing)
 	// @Error("invalid code annotation '%InvalidAnnotationText': expected an int literal or a qualified constant like http.StatusNotFound")
 	ErrParsingInvalidCodeAnnotation = errors.New("invalid code annotation")
 	// @InvalidAnnotationText string
@@ -82,4 +85,8 @@ var (
 	// @Is(ErrResolving)
 	// @Error("resolver: no module directive in go.mod")
 	ErrNoModuleDirective = errors.New("no module directive in go.mod")
+	// @WrappedError error
+	// @Is(ErrResolving)
+	// @Error("resolver: %WrappedError")
+	ErrResolverInternal = errors.New("resolver internal error")
 )

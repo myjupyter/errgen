@@ -165,7 +165,7 @@ func (e *ParsingInvalidErrorAnnotationError) Error() string {
 
 // Is reports whether the target matches [ErrParsingInvalidErrorAnnotation]
 func (e *ParsingInvalidErrorAnnotationError) Is(target error) bool {
-	return target == ErrParsingInvalidErrorAnnotation
+	return target == ErrParsingInvalidErrorAnnotation || target == ErrParsing
 }
 
 // Unwrap returns the underlying error(s)
@@ -227,7 +227,7 @@ func (e *ParsingInvalidVarAnnotationError) Error() string {
 
 // Is reports whether the target matches [ErrParsingInvalidVarAnnotation]
 func (e *ParsingInvalidVarAnnotationError) Is(target error) bool {
-	return target == ErrParsingInvalidVarAnnotation
+	return target == ErrParsingInvalidVarAnnotation || target == ErrParsing
 }
 
 // Unwrap returns the underlying error(s)
@@ -294,7 +294,7 @@ func (e *ParsingInvalidCodeAnnotationError) Error() string {
 
 // Is reports whether the target matches [ErrParsingInvalidCodeAnnotation]
 func (e *ParsingInvalidCodeAnnotationError) Is(target error) bool {
-	return target == ErrParsingInvalidCodeAnnotation
+	return target == ErrParsingInvalidCodeAnnotation || target == ErrParsing
 }
 
 // Unwrap returns the underlying error(s)
@@ -923,6 +923,71 @@ func (e *NoModuleDirectiveError) Unwrap() error {
 // NewNoModuleDirectiveError creates a new NoModuleDirectiveError
 func NewNoModuleDirectiveError() *NoModuleDirectiveError {
 	e := &NoModuleDirectiveError{}
+	e.onCreate()
+	return e
+}
+
+// ResolverInternalError is a rich error type wrapping [ErrResolverInternal]
+type ResolverInternalError struct {
+	WrappedError error
+}
+
+// Error implements the error interface
+func (e *ResolverInternalError) Error() string {
+	return fmt.Sprintf("resolver: %v", e.WrappedError)
+}
+
+// Is reports whether the target matches [ErrResolverInternal]
+func (e *ResolverInternalError) Is(target error) bool {
+	return target == ErrResolverInternal || target == ErrResolving
+}
+
+// Unwrap returns the underlying error(s)
+func (e *ResolverInternalError) Unwrap() []error {
+	return []error{e.WrappedError, ErrResolverInternal}
+}
+
+// LogValue implements [slog.LogValuer] for structured logging
+func (e *ResolverInternalError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.String("error", e.Error()),
+		slog.Any("wrappedError", e.WrappedError),
+	)
+}
+
+// MarshalJSON implements [json.Marshaler]
+func (e *ResolverInternalError) MarshalJSON() ([]byte, error) {
+	type jsonError struct {
+		Error        string `json:"error"`
+		WrappedError string `json:"wrappedError,omitempty"`
+	}
+	d := jsonError{Error: e.Error()}
+	if e.WrappedError != nil {
+		d.WrappedError = e.WrappedError.Error()
+	}
+	return json.Marshal(d)
+}
+
+// UnmarshalJSON implements [json.Unmarshaler]
+func (e *ResolverInternalError) UnmarshalJSON(data []byte) error {
+	type jsonError struct {
+		WrappedError string `json:"wrappedError"`
+	}
+	var d jsonError
+	if err := json.Unmarshal(data, &d); err != nil {
+		return err
+	}
+	if d.WrappedError != "" {
+		e.WrappedError = errors.New(d.WrappedError)
+	}
+	return nil
+}
+
+// NewResolverInternalError creates a new ResolverInternalError
+func NewResolverInternalError(wrappedError error) *ResolverInternalError {
+	e := &ResolverInternalError{
+		WrappedError: wrappedError,
+	}
 	e.onCreate()
 	return e
 }

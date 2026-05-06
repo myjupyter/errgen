@@ -195,7 +195,7 @@ import (
 // onCreate is a hook for user custom logic
 // the code inside must not panic
 func (e *ServiceUnavailableError) onCreate() {
-	// on error creation produce error log with fields and metrics
+  // on error creation, produce an error log with fields and bump a metric
 	slog.Error("service", "error", e)
 	metrics.Increment(fmt.Sprintf("service.%s.unavailable.error", e.Domain))
 }
