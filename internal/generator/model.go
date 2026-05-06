@@ -47,7 +47,7 @@ type errDefData struct { //nolint:govet // readability over alignment
 	TypeName        string
 	VarName         string
 	Fields          []fieldData
-	Iss             []isData
+	IsTargets       []isData
 	ErrorFormat     *string
 	FmtString       string
 	ConstructorArgs string

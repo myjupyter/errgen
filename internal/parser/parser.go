@@ -142,52 +142,54 @@ func parseAnnotations(comments []*ast.Comment) (*model.ErrDef, error) {
 
 // parseAnnotation parses a single annotation line like:
 //
-// @Code int
-// @Code(500)
-// @Is(ErrNotFound)
-// @Message string
-// @Error("code: %Code, message: %Message")
+//	@Code(500)
+//	@Is(ErrInternal)
+//	@Message string
+//	@Error("code: %Code, message: %Message")
 func parseAnnotation(text string, def *model.ErrDef) error {
-	// @Error("...") — format annotation
-	if strings.HasPrefix(text, "@Error(") {
-		format, err := parseErrorAnnotation(text)
-		if err != nil {
-			return err
-		}
-		def.ErrorFormat = &format
-		return nil
+	const (
+		errorAnnotationPrefix = "@Error("
+		codeAnnotationPrefix  = "@Code("
+		isAnnotationPrefix    = "@Is("
+	)
+	switch {
+	case strings.HasPrefix(text, errorAnnotationPrefix):
+		return collectErrorAnnotation(text, def)
+	case strings.HasPrefix(text, codeAnnotationPrefix):
+		return collectCodeAnnotation(text, def)
+	case strings.HasPrefix(text, isAnnotationPrefix):
+		return collectIsAnnotation(text, def)
+	default:
+		return collectVarAnnotation(text, def)
 	}
+}
 
-	// @Code(...) — HTTP status code annotation
-	if strings.HasPrefix(text, "@Code(") {
-		expr, err := parseCodeAnnotation(text)
-		if err != nil {
-			return err
-		}
-		def.Code = &model.CodeDef{Expr: expr}
-		return nil
-	}
+// codeExprRegex accepts either:
+//   - a signed int literal (decimal or hex): 404, -1, 0x1F4
+//   - a Go identifier or qualified identifier: MyConst, http.StatusNotFound
+var codeExprRegex = regexp.MustCompile(
+	`^(-?(0[xX][0-9a-fA-F]+|\d+)|[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?)$`,
+)
 
-	// @Is(...) - error code binding annotation
-	if strings.HasPrefix(text, "@Is(") {
-		expr, err := parseIsAnnotation(text)
-		if err != nil {
-			return err
-		}
+// idExprRegex accepts a Go identifier or qualified identifier:
+// MyErr, pkg.ErrNotFound. It rejects int literals because @Is targets
+// must be values of type error.
+var idExprRegex = regexp.MustCompile(
+	`^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?$`,
+)
 
-		def.Iss = append(def.Iss, model.IsDef{
-			Expr: expr,
-		})
-		return nil
-	}
+// regexp for parseVarAnnotation
+var (
+	varNameRegex  = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+	typeNameRegex = regexp.MustCompile(`^(\*|\[\]|map\[.*\]\s*)*[\w\.]+$`)
+)
 
-	// @Name Type — field declaration
-	field, err := parseVarAnnotation(text)
+func collectCodeAnnotation(text string, def *model.ErrDef) error {
+	expr, err := parseCodeAnnotation(text)
 	if err != nil {
 		return err
 	}
-
-	def.Fields = append(def.Fields, field)
+	def.Code = &model.CodeDef{Expr: expr}
 	return nil
 }
 
@@ -202,12 +204,14 @@ func parseCodeAnnotation(text string) (string, error) {
 	return expr, nil
 }
 
-// codeExprRegex accepts either:
-//   - a signed int literal (decimal or hex): 404, -1, 0x1F4
-//   - a Go identifier or qualified identifier: MyConst, http.StatusNotFound
-var codeExprRegex = regexp.MustCompile(
-	`^(-?(0[xX][0-9a-fA-F]+|\d+)|[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?)$`,
-)
+func collectErrorAnnotation(text string, def *model.ErrDef) error {
+	format, err := parseErrorAnnotation(text)
+	if err != nil {
+		return err
+	}
+	def.ErrorFormat = &format
+	return nil
+}
 
 // parseErrorAnnotation extracts the format string from @Error("...")
 func parseErrorAnnotation(text string) (string, error) {
@@ -220,22 +224,37 @@ func parseErrorAnnotation(text string) (string, error) {
 	return strings.Trim(inner, `"`), nil
 }
 
-// parseIsAnnotation extracts the code expression from @Is(...)
+func collectIsAnnotation(text string, def *model.ErrDef) error {
+	expr, err := parseIsAnnotation(text)
+	if err != nil {
+		return err
+	}
+	def.IsTargets = append(def.IsTargets, model.IsDef{Expr: expr})
+	return nil
+}
+
+// parseIsAnnotation extracts the error identifier from @Is(...). The inner
+// expression must be a Go identifier or qualified identifier referring to a
+// value of type error (e.g. ErrNotFound, pkg.ErrNotFound). Int literals are
+// rejected because they could not be compared to an error.
 func parseIsAnnotation(text string) (string, error) {
 	inner := strings.TrimPrefix(text, "@Is(")
 	expr := strings.TrimSuffix(strings.TrimSpace(inner), ")")
 	expr = strings.TrimSpace(expr)
-	if expr == "" || !codeExprRegex.MatchString(expr) {
-		return "", model.NewParsingInvalidCodeAnnotationError(text)
+	if expr == "" || !idExprRegex.MatchString(expr) {
+		return "", model.NewParsingInvalidIsAnnotationError(text)
 	}
 	return expr, nil
 }
 
-// regexp for parseVarAnnotation
-var (
-	varNameRegex  = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
-	typeNameRegex = regexp.MustCompile(`^(\*|\[\]|map\[.*\]\s*)*[\w\.]+$`)
-)
+func collectVarAnnotation(text string, def *model.ErrDef) error {
+	field, err := parseVarAnnotation(text)
+	if err != nil {
+		return err
+	}
+	def.Fields = append(def.Fields, field)
+	return nil
+}
 
 // parseVarAnnotation extracts the field name and type from @Name Type
 func parseVarAnnotation(text string) (*model.Field, error) {

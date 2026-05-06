@@ -190,12 +190,10 @@ func aggregateImportFlags(defs []errDefData, in GenerateInput) importFlags { //n
 			seen[d.Code.ImportPath] = true
 			flags.imports = append(flags.imports, d.Code.ImportPath)
 		}
-		if len(d.Iss) > 0 {
-			for _, iss := range d.Iss {
-				if iss.ImportPath != "" && !seen[iss.ImportPath] {
-					seen[iss.ImportPath] = true
-					flags.imports = append(flags.imports, iss.ImportPath)
-				}
+		for _, t := range d.IsTargets {
+			if t.ImportPath != "" && !seen[t.ImportPath] {
+				seen[t.ImportPath] = true
+				flags.imports = append(flags.imports, t.ImportPath)
 			}
 		}
 		for _, f := range d.Fields {
@@ -281,11 +279,11 @@ func buildDefData(def model.ErrDef) (errDefData, error) {
 		code = &codeData{Expr: def.Code.Expr, ImportPath: def.Code.ImportPath}
 	}
 
-	var iss []isData
-	if len(def.Iss) > 0 {
-		iss = make([]isData, len(def.Iss))
-		for i, is := range def.Iss {
-			iss[i] = isData{Expr: is.Expr, ImportPath: is.ImportPath}
+	var isTargets []isData
+	if len(def.IsTargets) > 0 {
+		isTargets = make([]isData, len(def.IsTargets))
+		for i, t := range def.IsTargets {
+			isTargets[i] = isData{Expr: t.Expr, ImportPath: t.ImportPath}
 		}
 	}
 
@@ -297,7 +295,7 @@ func buildDefData(def model.ErrDef) (errDefData, error) {
 		ConstructorArgs: constructorArgs,
 		WrappedFields:   wrappedFields,
 		Code:            code,
-		Iss:             iss,
+		IsTargets:       isTargets,
 	}, nil
 }
 

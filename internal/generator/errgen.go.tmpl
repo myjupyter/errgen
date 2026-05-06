@@ -68,7 +68,7 @@ func (e *{{.TypeName}}) Error() string {
 
 // Is reports whether the target matches [{{.VarName}}]
 func (e *{{.TypeName}}) Is(target error) bool {
-	return target == {{.VarName}} {{- range .Iss}}|| target == {{.Expr}} {{end}}
+	return target == {{.VarName}}{{range .IsTargets}} || target == {{.Expr}}{{end}}
 }
 
 // Unwrap returns the underlying error(s)

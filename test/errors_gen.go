@@ -4,72 +4,85 @@ package test
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
-	"net/http"
 )
 
-// InternalError is a rich error type wrapping [ErrInternal]
-type InternalError struct {
-	Reason string
+// ServiceUnavailableError is a rich error type wrapping [ErrServiceUnavailable]
+type ServiceUnavailableError struct {
+	Domain string
+	Tags   []string
+	Cause  error
 }
 
 // Error implements the error interface
-func (e *InternalError) Error() string {
-	return fmt.Sprintf("internal error: reason is %v", e.Reason)
+func (e *ServiceUnavailableError) Error() string {
+	return fmt.Sprintf("internal: service unavailable: [domain=\"%v\", tags=%v]; cause: %v", e.Domain, e.Tags, e.Cause)
 }
 
-// Is reports whether the target matches [ErrInternal]
-func (e *InternalError) Is(target error) bool {
-	return target == ErrInternal
+// Is reports whether the target matches [ErrServiceUnavailable]
+func (e *ServiceUnavailableError) Is(target error) bool {
+	return target == ErrServiceUnavailable || target == ErrInternal
 }
 
 // Unwrap returns the underlying error(s)
-func (e *InternalError) Unwrap() error {
-	return ErrInternal
-}
-
-// StatusCode returns the HTTP status code for this error
-func (e *InternalError) StatusCode() int {
-	return http.StatusInternalServerError
+func (e *ServiceUnavailableError) Unwrap() []error {
+	return []error{e.Cause, ErrServiceUnavailable}
 }
 
 // LogValue implements [slog.LogValuer] for structured logging
-func (e *InternalError) LogValue() slog.Value {
+func (e *ServiceUnavailableError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("error", e.Error()),
-		slog.String("reason", e.Reason),
+		slog.String("domain", e.Domain),
+		slog.Any("tags", e.Tags),
+		slog.Any("cause", e.Cause),
 	)
 }
 
 // MarshalJSON implements [json.Marshaler]
-func (e *InternalError) MarshalJSON() ([]byte, error) {
+func (e *ServiceUnavailableError) MarshalJSON() ([]byte, error) {
 	type jsonError struct {
-		Error  string `json:"error"`
-		Reason string `json:"reason"`
+		Error  string   `json:"error"`
+		Domain string   `json:"domain"`
+		Tags   []string `json:"tags"`
+		Cause  string   `json:"cause,omitempty"`
 	}
 	d := jsonError{Error: e.Error()}
-	d.Reason = e.Reason
+	d.Domain = e.Domain
+	d.Tags = e.Tags
+	if e.Cause != nil {
+		d.Cause = e.Cause.Error()
+	}
 	return json.Marshal(d)
 }
 
 // UnmarshalJSON implements [json.Unmarshaler]
-func (e *InternalError) UnmarshalJSON(data []byte) error {
+func (e *ServiceUnavailableError) UnmarshalJSON(data []byte) error {
 	type jsonError struct {
-		Reason string `json:"reason"`
+		Domain string   `json:"domain"`
+		Tags   []string `json:"tags"`
+		Cause  string   `json:"cause"`
 	}
 	var d jsonError
 	if err := json.Unmarshal(data, &d); err != nil {
 		return err
 	}
-	e.Reason = d.Reason
+	e.Domain = d.Domain
+	e.Tags = d.Tags
+	if d.Cause != "" {
+		e.Cause = errors.New(d.Cause)
+	}
 	return nil
 }
 
-// NewInternalError creates a new InternalError
-func NewInternalError(reason string) *InternalError {
-	e := &InternalError{
-		Reason: reason,
+// NewServiceUnavailableError creates a new ServiceUnavailableError
+func NewServiceUnavailableError(domain string, tags []string, cause error) *ServiceUnavailableError {
+	e := &ServiceUnavailableError{
+		Domain: domain,
+		Tags:   tags,
+		Cause:  cause,
 	}
 	e.onCreate()
 	return e

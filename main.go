@@ -205,28 +205,41 @@ func run(cfg *config) error {
 }
 
 func resolveImports(fileInfo *model.FileInfo, manualImports importMapFlag, inputFile string) error {
-	// Collect package-qualified strings from both field types and @Code expressions.
-	var qualified []string
-	for _, def := range fileInfo.ErrDefs {
-		for _, f := range def.Fields {
-			qualified = append(qualified, f.Type)
-		}
-		if def.Code != nil {
-			qualified = append(qualified, def.Code.Expr)
-		}
-		if len(def.Iss) > 0 {
-			for j := range def.Iss {
-				qualified = append(qualified, def.Iss[j].Expr)
-			}
-		}
-	}
-
-	pkgNames := resolver.ExtractPackageNames(qualified)
+	pkgNames := resolver.ExtractPackageNames(collectQualifiedExprs(fileInfo))
 	if len(pkgNames) == 0 {
 		return nil
 	}
 
-	// Separate manually mapped packages from those needing resolution
+	resolved, err := resolvePackageNames(pkgNames, manualImports, inputFile)
+	if err != nil {
+		return err
+	}
+
+	assignImportPaths(fileInfo, resolved)
+	return nil
+}
+
+// collectQualifiedExprs returns every expression in fileInfo whose package name
+// may need resolving: field types, @Code expressions, and @Is targets.
+func collectQualifiedExprs(fileInfo *model.FileInfo) []string {
+	var out []string
+	for _, def := range fileInfo.ErrDefs {
+		for _, f := range def.Fields {
+			out = append(out, f.Type)
+		}
+		if def.Code != nil {
+			out = append(out, def.Code.Expr)
+		}
+		for _, t := range def.IsTargets {
+			out = append(out, t.Expr)
+		}
+	}
+	return out
+}
+
+// resolvePackageNames splits pkgNames into manually-mapped vs auto-resolved and
+// returns a single map from package name to import path.
+func resolvePackageNames(pkgNames []string, manualImports importMapFlag, inputFile string) (map[string]string, error) {
 	resolved := make(map[string]string)
 	var unresolvedPkgs []string
 	for _, name := range pkgNames {
@@ -237,45 +250,45 @@ func resolveImports(fileInfo *model.FileInfo, manualImports importMapFlag, input
 		}
 	}
 
-	if len(unresolvedPkgs) > 0 {
-		res, err := resolver.New(filepath.Dir(inputFile))
-		if err != nil {
-			return err
-		}
-		autoResolved, err := res.Resolve(unresolvedPkgs)
-		if err != nil {
-			return err
-		}
-		for k, v := range autoResolved {
-			resolved[k] = v
-		}
+	if len(unresolvedPkgs) == 0 {
+		return resolved, nil
 	}
 
-	// Assign import paths back to fields and @Code defs
+	res, err := resolver.New(filepath.Dir(inputFile))
+	if err != nil {
+		return nil, err
+	}
+	autoResolved, err := res.Resolve(unresolvedPkgs)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range autoResolved {
+		resolved[k] = v
+	}
+	return resolved, nil
+}
+
+// assignImportPaths writes resolved import paths back onto fields, @Code defs,
+// and @Is targets of every error definition in fileInfo.
+func assignImportPaths(fileInfo *model.FileInfo, resolved map[string]string) {
 	for i := range fileInfo.ErrDefs {
-		for j, f := range fileInfo.ErrDefs[i].Fields {
-			pkgName := resolver.ExtractPkgName(f.Type)
-			if pkgName != "" {
-				fileInfo.ErrDefs[i].Fields[j].ImportPath = resolved[pkgName]
+		def := &fileInfo.ErrDefs[i]
+		for j, f := range def.Fields {
+			if pkg := resolver.ExtractPkgName(f.Type); pkg != "" {
+				def.Fields[j].ImportPath = resolved[pkg]
 			}
 		}
-		if fileInfo.ErrDefs[i].Code != nil {
-			pkgName := resolver.ExtractPkgName(fileInfo.ErrDefs[i].Code.Expr)
-			if pkgName != "" {
-				fileInfo.ErrDefs[i].Code.ImportPath = resolved[pkgName]
+		if def.Code != nil {
+			if pkg := resolver.ExtractPkgName(def.Code.Expr); pkg != "" {
+				def.Code.ImportPath = resolved[pkg]
 			}
 		}
-		if len(fileInfo.ErrDefs[i].Iss) > 0 {
-			for j := range fileInfo.ErrDefs[i].Iss {
-				pkgName := resolver.ExtractPkgName(fileInfo.ErrDefs[i].Iss[j].Expr)
-				if pkgName != "" {
-					fileInfo.ErrDefs[i].Iss[j].ImportPath = resolved[pkgName]
-				}
+		for j := range def.IsTargets {
+			if pkg := resolver.ExtractPkgName(def.IsTargets[j].Expr); pkg != "" {
+				def.IsTargets[j].ImportPath = resolved[pkg]
 			}
 		}
 	}
-
-	return nil
 }
 
 func detectCrossPackage(inputFile, outputPath, srcPkgName string) (string, string, error) {

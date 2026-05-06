@@ -5,18 +5,6 @@ package model
 
 // onCreate is a hook for user custom logic
 // the code inside must not panic
-func (e *ParsingError) onCreate() {
-	// put custom logic here
-}
-
-// onCreate is a hook for user custom logic
-// the code inside must not panic
-func (e *GenerationError) onCreate() {
-	// put custom logic here
-}
-
-// onCreate is a hook for user custom logic
-// the code inside must not panic
 func (e *ParsingAnnotationError) onCreate() {
 	// put custom logic here
 }
@@ -71,12 +59,6 @@ func (e *GenErrDefError) onCreate() {
 
 // onCreate is a hook for user custom logic
 // the code inside must not panic
-func (e *ResolvingError) onCreate() {
-	// put custom logic here
-}
-
-// onCreate is a hook for user custom logic
-// the code inside must not panic
 func (e *PackageNotFoundError) onCreate() {
 	// put custom logic here
 }
@@ -102,5 +84,11 @@ func (e *NoModuleDirectiveError) onCreate() {
 // onCreate is a hook for user custom logic
 // the code inside must not panic
 func (e *ParsingInvalidCodeAnnotationError) onCreate() {
+	// put custom logic here
+}
+
+// onCreate is a hook for user custom logic
+// the code inside must not panic
+func (e *ParsingInvalidIsAnnotationError) onCreate() {
 	// put custom logic here
 }

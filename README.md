@@ -32,6 +32,7 @@ Go code generator for rich error types. Stdlib only, zero dependencies.
   - [`@Name Type` - field declaration](#name-type---field-declaration)
   - [`@Error("format string")` - error message](#errorformat-string---error-message)
   - [`@Code(...)` - HTTP status code](#code---http-status-code)
+  - [`@Is(...)` - match additional sentinels](#is---match-additional-sentinels)
 - [Features](#features)
   - [Generated type naming](#generated-type-naming)
   - [Error-typed fields and `Unwrap`](#error-typed-fields-and-unwrap)
@@ -50,7 +51,7 @@ go install github.com/myjupyter/errgen@latest
 
 ## Usage
 
-Add a `go:generate` directive to your source file:
+Add a `go:generate` directive and annotations to your source file:
 
 ```go
 // errors.go
@@ -61,11 +62,18 @@ import "errors"
 
 //go:generate go run github.com/myjupyter/errgen
 
-// @Reason string
-// @Code(http.StatusInternalServerError)
-// @Error("internal error: reason is %Reason")
+// ErrInternal is a general error category
 var ErrInternal = errors.New("internal error")
+
+// @Domain string
+// @Tags []string
+// @Cause error
+// @Is(ErrInternal)
+// @Error("internal: service unavailable: [domain=\"%Domain\", tags=%Tags]; cause: %Cause")
+var ErrServiceUnavailable = errors.New("service unavailable")
 ```
+
+`ErrServiceUnavailable` describes a specific service-unavailable failure: it carries a domain, tags, and the original cause. The `@Is(ErrInternal)` annotation places it under the broader `ErrInternal` category, so `errors.Is(err, ErrInternal)` returns `true` for any error in that hierarchy. `@Error(...)` overrides the sentinel's message so the formatted output includes those fields.
 
 Then run:
 
@@ -85,72 +93,85 @@ package test
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
-	"net/http"
 )
 
-// InternalError is a rich error type wrapping [ErrInternal]
-type InternalError struct {
-	Reason string
+// ServiceUnavailableError is a rich error type wrapping [ErrServiceUnavailable]
+type ServiceUnavailableError struct {
+	Domain string
+	Tags   []string
+	Cause  error
 }
 
 // Error implements the error interface
-func (e *InternalError) Error() string {
-	return fmt.Sprintf("internal error: reason is %v", e.Reason)
+func (e *ServiceUnavailableError) Error() string {
+	return fmt.Sprintf("internal: service unavailable: [domain=\"%v\", tags=%v]; cause: %v", e.Domain, e.Tags, e.Cause)
 }
 
-// Is reports whether the target matches [ErrInternal]
-func (e *InternalError) Is(target error) bool {
-	return target == ErrInternal
+// Is reports whether the target matches [ErrServiceUnavailable]
+func (e *ServiceUnavailableError) Is(target error) bool {
+	return target == ErrServiceUnavailable || target == ErrInternal
 }
 
 // Unwrap returns the underlying error(s)
-func (e *InternalError) Unwrap() error {
-	return ErrInternal
-}
-
-// StatusCode returns the HTTP status code for this error
-func (e *InternalError) StatusCode() int {
-	return http.StatusInternalServerError
+func (e *ServiceUnavailableError) Unwrap() []error {
+	return []error{e.Cause, ErrServiceUnavailable}
 }
 
 // LogValue implements [slog.LogValuer] for structured logging
-func (e *InternalError) LogValue() slog.Value {
+func (e *ServiceUnavailableError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("error", e.Error()),
-		slog.String("reason", e.Reason),
+		slog.String("domain", e.Domain),
+		slog.Any("tags", e.Tags),
+		slog.Any("cause", e.Cause),
 	)
 }
 
 // MarshalJSON implements [json.Marshaler]
-func (e *InternalError) MarshalJSON() ([]byte, error) {
+func (e *ServiceUnavailableError) MarshalJSON() ([]byte, error) {
 	type jsonError struct {
-		Error  string `json:"error"`
-		Reason string `json:"reason"`
+		Error  string   `json:"error"`
+		Domain string   `json:"domain"`
+		Tags   []string `json:"tags"`
+		Cause  string   `json:"cause,omitempty"`
 	}
 	d := jsonError{Error: e.Error()}
-	d.Reason = e.Reason
+	d.Domain = e.Domain
+	d.Tags = e.Tags
+	if e.Cause != nil {
+		d.Cause = e.Cause.Error()
+	}
 	return json.Marshal(d)
 }
 
 // UnmarshalJSON implements [json.Unmarshaler]
-func (e *InternalError) UnmarshalJSON(data []byte) error {
+func (e *ServiceUnavailableError) UnmarshalJSON(data []byte) error {
 	type jsonError struct {
-		Reason string `json:"reason"`
+		Domain string   `json:"domain"`
+		Tags   []string `json:"tags"`
+		Cause  string   `json:"cause"`
 	}
 	var d jsonError
 	if err := json.Unmarshal(data, &d); err != nil {
 		return err
 	}
-	e.Reason = d.Reason
+	e.Domain = d.Domain
+	e.Tags = d.Tags
+	if d.Cause != "" {
+		e.Cause = errors.New(d.Cause)
+	}
 	return nil
 }
 
-// NewInternalError creates a new InternalError
-func NewInternalError(reason string) *InternalError {
-	e := &InternalError{
-		Reason: reason,
+// NewServiceUnavailableError creates a new ServiceUnavailableError
+func NewServiceUnavailableError(domain string, tags []string, cause error) *ServiceUnavailableError {
+	e := &ServiceUnavailableError{
+		Domain: domain,
+		Tags:   tags,
+		Cause:  cause,
 	}
 	e.onCreate()
 	return e
@@ -165,12 +186,19 @@ func NewInternalError(reason string) *InternalError {
 
 package test
 
+import (
+  "fmt"
+  "log/slog"
+  "<metrics_path>/metrics"
+)
+
 // onCreate is a hook for user custom logic
 // the code inside must not panic
-func (e *InternalError) onCreate() {
-	// put custom logic here
+func (e *ServiceUnavailableError) onCreate() {
+	// on error creation produce error log with fields and metrics
+	slog.Error("service", "error", e)
+	metrics.Increment(fmt.Sprintf("service.%s.unavailable.error", e.Domain))
 }
-
 ```
 
 </details>
@@ -180,12 +208,12 @@ func (e *InternalError) onCreate() {
 ### Flags
 
 ```
--p string    package name for the generated file (default: $GOPACKAGE)
--o string    output file path (default: <input>_gen.go)
--t string    path to a custom Go template file (default: built-in template)
--n bool      dry run: print generated code to stdout instead of writing a file
--v bool      print version and exit
--m value     manual import mapping: pkg=import/path (repeatable, for ambiguous packages)
+-p string      package name for the generated file (default: $GOPACKAGE)
+-o string      output file path (default: <input>_gen.go)
+-t string      path to a custom Go template file (default: built-in template)
+-n             dry run: print generated code to stdout instead of writing a file
+-v             print version and exit
+-m value       manual import mapping: pkg=import/path (repeatable, for ambiguous packages)
 -no-hooks      skip hook file generation
 -stack-trace   capture call stack in constructors via runtime.Callers
 -zap           also generate a zapcore.ObjectMarshaler implementation (adds go.uber.org/zap dependency)
@@ -296,6 +324,59 @@ if errors.As(err, &coder) {
 }
 ```
 
+### `@Is(...)` - match additional sentinels
+
+Adds another sentinel that the generated `Is(target error) bool` method reports as a match, so `errors.Is(err, target)` returns `true`. Use it to group concrete errors under a broader category sentinel — pick a small set of category errors (`ErrInvalidArgument`, `ErrNotFound`, `ErrInternal`, …) and tag every concrete error with the category it belongs to. Callers can then match at the category level without having to enumerate every leaf.
+
+```go
+package errcodes
+
+import "errors"
+
+var (
+    ErrInvalidArgument = errors.New("invalid argument")
+    ErrNotFound        = errors.New("not found")
+    ErrInternal        = errors.New("internal error")
+)
+```
+
+```go
+package user
+
+import (
+    "errors"
+
+    "example.com/app/errcodes"
+)
+
+//go:generate go run github.com/myjupyter/errgen
+
+// @Name string
+// @Is(errcodes.ErrInvalidArgument)
+// @Error("username '%Name' is invalid")
+var ErrInvalidUserName = errors.New("invalid username")
+
+// @ID int
+// @Is(errcodes.ErrNotFound)
+// @Error("user with ID '%ID' not found")
+var ErrNotFoundUser = errors.New("user not found")
+
+// @Cause error
+// @Is(errcodes.ErrInternal)
+// @Error("user service internal error: %Cause")
+var ErrUserServiceInternal = errors.New("user service internal error")
+```
+
+```go
+err := user.NewInvalidUserNameError("")
+
+errors.Is(err, user.ErrInvalidUserName)        // true (the declaring sentinel)
+errors.Is(err, errcodes.ErrInvalidArgument)    // true (the @Is category)
+errors.Is(err, errcodes.ErrNotFound)           // false
+```
+
+`@Is` is repeatable — declare it more than once to place an error in several categories at the same time. The expression must be a Go identifier or qualified identifier referring to a value of type `error` (e.g. `ErrFoo`, `pkg.ErrFoo`); int literals and complex expressions are rejected at parse time. Imports are resolved automatically, so cross-package category packages like `errcodes` above need no extra configuration. Note that `@Is` only widens the `Is` check — `Unwrap()` is unchanged and still returns just the declaring sentinel (plus any error-typed fields).
+
 ## Features
 
 ### Generated type naming
@@ -306,7 +387,7 @@ The type name is derived from the variable name by stripping the `Err` prefix an
 
 | Variable          | Generated type      |
 |-------------------|---------------------|
-| `ErrHTTP`         | `HTTPError`         |
+| `ErrInternal`     | `InternalError`     |
 | `ErrNotFound`     | `NotFoundError`     |
 | `ErrValidation`   | `ValidationError`   |
 
